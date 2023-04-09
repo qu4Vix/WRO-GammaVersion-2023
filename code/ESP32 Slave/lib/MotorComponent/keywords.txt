@@ -1,0 +1,6 @@
+Motor KEYWORD1
+
+Init KEYWORD2
+SetPower KEYWORD2
+SetSpeed KEYWORD2
+GetPower KEYWORD2
