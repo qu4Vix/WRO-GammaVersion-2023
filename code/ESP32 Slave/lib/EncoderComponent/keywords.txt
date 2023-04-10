@@ -1,0 +1,5 @@
+Encoder KEYWORD1
+
+Attach KEYWORD2
+EncoderISR KEYWORD2
+UpdateEncoder KEYWORD2
