@@ -14,7 +14,7 @@ To use the OTAUpdater library in your Arduino project, follow these steps:
 
 1. Download the latest release from the [releases page](https://github.com/qu4Vix/WRO-GammaVersion-2023/releases).
 2. Extract the downloaded ZIP file to your Arduino libraries folder. On Windows, this is usually located in "Documents/Arduino/libraries". 
-- You can find the location of your sketchbook by going to **File > Preferences** in the Arduino IDE.
+   - You can find the location of your sketchbook by going to **File > Preferences** in the Arduino IDE.
 3. Include the OTAUpdater library in your Arduino sketch by adding #include \<OTAUpdater.h\> at the top of your sketch.
    
 ### Platform IO
