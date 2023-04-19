@@ -26,7 +26,7 @@ To use the OTAUpdater library in your PlatformIO project, follow these steps:
 3. In your PlatformIO project, include the OTAUpdater library in your code by adding the following line at the beginning of your sketch:
 ```cpp
 #include <OTAUpdater.h>
-´´´
+```
 ## Usage
 
 To use the OTAUpdater library in your ESP32-based Arduino project, follow these steps:
@@ -35,6 +35,21 @@ To use the OTAUpdater library in your ESP32-based Arduino project, follow these 
 2. In your ´setup()´ function, call the ´updater.begin()´ method to initialize the OTA update process, passing in your Wi-Fi network SSID and password as parameters: ´updater.begin("mySSID", "myPassword");´
 
 That's it! Now you can update your ESP32 firmware over your local Wi-Fi network using the AsyncElegantOTA library.
+
+## API Reference
+
+### `Updater`
+
+The `Updater` class provides the following function:
+
+`Updater(uint16_t port)`
+Creates a new instance of the `Updater` class. It takes the port as argument.
+
+`void WiFiInit()`
+Initialices the WiFi connection for the ESP32 with the `ssid` and `password` definded.
+
+`void OTAUpdate()`
+Begins the Elegant OTA and the server.
 
 ## License
 

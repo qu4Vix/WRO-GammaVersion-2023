@@ -8,7 +8,7 @@
 
 #include "AdvancedMPU.h"
 
-MPU::MPU(){
+MPU::MPU() {
     
 }
 
@@ -59,8 +59,9 @@ void MPU::UpdateAngle() {
     static uint32_t prev_ms_angle = millis();
     if (_mpu.update()) {
         _sampleDuration = millis() - prev_ms_angle;
+        float gyroZ = _mpu.getGyroZ();
         prev_ms_angle = millis();
-        _angle += ((_mpu.getGyroZ() - _offset) * _sampleDuration / 1000);
+        _angle += ((gyroZ - _offset) * _sampleDuration / 1000);
     }
 }
 

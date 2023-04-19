@@ -1,5 +1,5 @@
 /*
- * Motor.h - Library for controling an engine with Arduino Framework.
+ * Motor.cpp - Library for controling an engine with Arduino Framework.
  *
  * Created by the Gamma Version Team, 2023
  * 
@@ -16,7 +16,7 @@ Motor::Motor(byte PinEn, byte PinDir1, byte PinDir2, float kp, float kd) { // se
   _kd = kd;
 }
 
-void Motor::Init(){
+void Motor::Init() {
   pinMode(_pinEn, OUTPUT);
   pinMode(_pinDir1, OUTPUT);
   pinMode(_pinDir2, OUTPUT);
