@@ -1,6 +1,7 @@
 /*
  *
- * OTAUpdate.h - Library to upload de code over the air with an ESP32.
+ * This is an example sketch for the OTAUpdate library.
+ * It demonstrates how to use the library to set up OTA updates for an ESP32.
  * 
  * Copyright 2023 Gamma Version
  * 
@@ -25,29 +26,24 @@
  * 
  */
 
-#ifndef OTAUpdate_h
-#define OTAUpdate_h
+#include <OTAUpdate.h>
 
-#include <Arduino.h>
+const char* ssid = "Replace with your ssid";
+const char* password = "Replace with your password";
 
-#include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <AsyncElegantOTA.h>
+Updater ota(80); // create an Updater object with the Server's port equal to 80
 
-extern const char* ssid;        // To be defined externally (Recommendable in a separate file)
-extern const char* password;    // To be defined externally (Recommendable in a separate file)
+void setup() {
 
-class Updater {
-    public:
-    Updater(uint16_t port);     // Class constructor, creates the Server object in the port established; additionally the routes are created
-    void WiFiInit();            // Begins the WiFi with the ssid and the password externally defined
-    void OTAInit();             // Begins the OTA and the Server
-    AsyncWebServer GetServer();           // Returns the Server object (In order to assign the routes)
+    ota.WiFiInit(); // begin the WiFi
+    ota.OTAInit();  // begin the Async Elegant OTA as well as the Server
+    // Now open the Serial, you will see an IP adress, search IP-adress/update, upload the .bin file of your code project.
 
-    private:
-    AsyncWebServer _server;
-    uint16_t _port;
-};
+    // now you can put your setup code here, to run once:
 
-#endif
+}
+
+void loop() {
+    // put your main code here, to run repeatedly:
+
+}
