@@ -74,7 +74,7 @@ Begins the Elegant OTA and the server.
 
 ## License
 
-This library is released under the GNU Lesser General Public License, version 3.0. See the [LICENSE](LICENSE) file for more details.
+This library is released under the GNU General Public License, version 3.0. See the [LICENSE](LICENSE) file for more details.
 
 ## References
 
