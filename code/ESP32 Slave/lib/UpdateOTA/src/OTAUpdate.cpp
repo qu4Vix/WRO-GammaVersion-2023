@@ -25,6 +25,7 @@
  */
 
 #include "OTAUpdate.h"
+#include <AsyncElegantOTA.h>
 
 Updater::Updater(uint16_t port)
 : _server(port)
@@ -45,7 +46,7 @@ void Updater::WiFiInit() {
     WiFi.begin(ssid, password);
 
     while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
+        delay(200);
         Serial.print(".");
     }
 

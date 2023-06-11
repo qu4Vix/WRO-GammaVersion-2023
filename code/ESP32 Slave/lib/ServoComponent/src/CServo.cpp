@@ -6,14 +6,22 @@
  * 
  */
 
-#include "Servo.h"
+#include "CServo.h"
 
 CServo::CServo(byte PinServo) {
   _pinServo = PinServo;
 }
 
+void CServo::BeginPWM() {
+  ESP32PWM::allocateTimer(0);
+	ESP32PWM::allocateTimer(1);
+	ESP32PWM::allocateTimer(2);
+	ESP32PWM::allocateTimer(3);
+}
+
 void CServo::Attach() {
-  Miservo.attach(_pinServo);
+  Miservo.setPeriodHertz(50);
+  Miservo.attach(_pinServo, 1000, 2000);
 }
 
 void CServo::MoveServo(int angle) {

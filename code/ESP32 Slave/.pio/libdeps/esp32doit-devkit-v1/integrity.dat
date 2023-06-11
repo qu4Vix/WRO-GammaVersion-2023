@@ -1,5 +1,6 @@
-madhephaestus/ESP32Servo@^0.13.0
 ayushsharma82/AsyncElegantOTA@^2.2.5
 arduino12/pixy2@^1.0.4
-me-no-dev/ESP Async WebServer@^1.2.3
+madhephaestus/ESP32Servo@^0.13.0
+madhephaestus/ESP32Encoder@^0.10.1
 me-no-dev/AsyncTCP@^1.1.1
+https://github.com/me-no-dev/ESPAsyncWebServer.git
