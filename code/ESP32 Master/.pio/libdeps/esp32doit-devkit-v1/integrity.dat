@@ -1,5 +1,5 @@
-me-no-dev/AsyncTCP@^1.1.1
-dancrank/RPLidar (DanCrank fork)@^1.0.2
-hideakitai/MPU9250@^0.4.8
-me-no-dev/ESP Async WebServer@^1.2.3
 ayushsharma82/AsyncElegantOTA@^2.2.5
+https://github.com/me-no-dev/ESPAsyncWebServer.git
+me-no-dev/AsyncTCP@^1.1.1
+hideakitai/MPU9250@^0.4.8
+dancrank/RPLidar (DanCrank fork)@^1.0.2

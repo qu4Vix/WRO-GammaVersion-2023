@@ -20,7 +20,7 @@ class MPU {
     void BeginWire(byte pinSDA, byte pinSCL, uint32_t frequency);   // Begin Wire 1
     void Setup();   // Set up the mpu 9265 with default settings in wire1
     void WorkOffset();  // Work out the offset of the mpu
-    void UpdateAngle(); // Update the angle (Call on the loop)
+    void UpdateAngle(); // Update the angle (Call in the loop)
     float GetAngle();   // Returns the angle
 
     private:
@@ -29,7 +29,7 @@ class MPU {
     byte _pinSCL;
     float _offset;
     float _angle;
-    unsigned long _sampleDuration;
+    uint32_t _prev_ms_angle;
 };
 
 #endif

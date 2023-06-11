@@ -17,7 +17,7 @@ void MPU::BeginWire(byte pinSDA, byte pinSCL, uint32_t frequency) {
     _pinSCL = pinSCL;
     while (!Wire1.begin(_pinSDA, _pinSCL, frequency)) {
         // Wire Connection failed
-        delay(1000);
+        delay(500);
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     }
 }
@@ -47,7 +47,7 @@ void MPU::WorkOffset() {
     float tot = 0;
     while (num < 1000) {
         if (_mpu.update()) {
-        num = num++;
+        num++;
         tot += _mpu.getGyroZ();
         }
         delay(5);
@@ -56,12 +56,12 @@ void MPU::WorkOffset() {
 }
 
 void MPU::UpdateAngle() {
-    static uint32_t prev_ms_angle = millis();
     if (_mpu.update()) {
-        _sampleDuration = millis() - prev_ms_angle;
+        unsigned long sampleDuration = millis() - _prev_ms_angle;
         float gyroZ = _mpu.getGyroZ();
-        prev_ms_angle = millis();
-        _angle += ((gyroZ - _offset) * _sampleDuration / 1000);
+        _prev_ms_angle = millis();
+        _angle += ((gyroZ - _offset) * sampleDuration / 1000);
+        Serial.println(_angle);
     }
 }
 
