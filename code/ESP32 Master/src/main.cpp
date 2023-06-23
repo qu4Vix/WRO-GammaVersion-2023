@@ -1,52 +1,51 @@
 #include <Arduino.h>
 #include <AdvancedMPU.h>
-#include <OTAUpdate.h>
 #include <RPLidar.h>
 #include "credentials.h"
+#include "pinAssignments.h"
 
-// LED pins
-#define pinLED_rojo 12
-#define pinLED_verde 13
+#define ENABLE_WIFI true
 
-// Battery level LED pins
-#define pinLED_batRojo 27
-#define pinLED_batAmarillo 26
-#define pinLED_batVerde 25
+#if ENABLE_WIFI == true
+#include <OTAUpdate.h>
+#include <Telemetry.h>
 
-// LIDAR pins (UART2 + PWM)
-#define pinLIDAR_TX 16
-#define pinLIDAR_RX 17
-#define pinLIDAR_motor 5
+IPAddress receiversIP(192, 168, 144, 14);
+uint16_t receiversPort = 4210;
+uint16_t udpPort = 1234;
+uint16_t otaPort = 1235;
 
-// MPU pins (I2C)
-#define pinMPU_SDA 21
-#define pinMPU_SCL 22
+Updater miota(otaPort);
+TelemetryManager telemetry(receiversIP, receiversPort);
+#endif
 
-// Interchip Communication pins (UART)
-#define pinTX 2
-#define pinRX 4
+uint32_t encoderMeasurement;
 
-// Button pin
-#define pinBoton 33
-
-Updater miota(80);
 MPU mimpu;
 HardwareSerial lidarSerial(2);
 RPLidar lidar;
+HardwareSerial commSerial(1);
+
+void setSpeed(int speed);
+void setSteering(int angle);
+void receiveData();
+void manageTension(uint8_t tension);
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
 
-  pinMode(pinBoton, INPUT_PULLUP);
-  pinMode(pinLED_rojo, OUTPUT);
-  pinMode(pinLED_verde, OUTPUT);
-  pinMode(pinLED_batRojo, OUTPUT);
-  pinMode(pinLED_batAmarillo, OUTPUT);
-  pinMode(pinLED_batVerde, OUTPUT);
+  setPinModes();
 
-  miota.WiFiInit();
-  miota.OTAInit();
+  commSerial.begin(1000000, SERIAL_8N1, pinRX, pinTX);
+
+  #if ENABLE_WIFI == true
+    miota.WiFiInit();
+    miota.SetStaticIP(250);
+    miota.OTAInit();
+
+    telemetry.StartUDP(udpPort);
+  #endif
 
   mimpu.BeginWire(pinMPU_SDA, pinMPU_SCL, 400000);
   mimpu.Setup();
@@ -55,37 +54,63 @@ void setup() {
   lidar.begin(lidarSerial);
 
   digitalWrite(pinLED_verde, HIGH);
-  while(digitalRead(pinBoton));
+  while (digitalRead(pinBoton));
   digitalWrite(pinLED_verde, LOW);
+
+  setSpeed(40);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if (IS_OK(lidar.waitPoint())) {
-    float distance = lidar.getCurrentPoint().distance; //distance value in mm unit
-    float angle    = lidar.getCurrentPoint().angle; //anglue value in degree
-    
-    //perform data processing here... 
-    if ((angle <= 10) && (angle >= -10)) {
-      Serial.print("DATA: ");
-      Serial.print("distance ");
-      Serial.print(distance);
-      Serial.print("  angle");
-      Serial.println(angle);
+  while (commSerial.available())
+  {
+    receiveData();
+  }
+}
+
+void setSpeed(int speed) {
+  commSerial.write(1);
+  speed = constrain(speed, -100, 100);
+  uint8_t _speed = (abs(speed) << 1) | ((speed >= 0) ? 0 : 1);
+  commSerial.write(speed);
+}
+
+void setSteering(int angle) {
+  commSerial.write(2);
+  angle = constrain(angle, -90, 90);
+  uint8_t _angle = map(angle, -90, 90, 0, 180);
+  commSerial.write(_angle);
+}
+
+void receiveData() {
+  uint8_t firstByte;
+  commSerial.readBytes(&firstByte, 1);
+  telemetry.SendString(String(firstByte));
+  if (firstByte == 7) {
+    uint8_t byte[4];
+    commSerial.readBytes(byte, 4);
+    for (uint8_t iteration; iteration < 4; iteration++) {
+      encoderMeasurement = encoderMeasurement | byte[iteration] << (8*iteration);
     }
-    
-  } else {
-    analogWrite(pinLIDAR_motor, 0); //stop the rplidar motor
-    
-    // try to detect RPLIDAR... 
-    rplidar_response_device_info_t info;
-    if (IS_OK(lidar.getDeviceInfo(info, 100))) {
-       // detected...
-       lidar.startScan();
-       
-       // start motor rotating at max allowed speed
-       analogWrite(pinLIDAR_motor, 255);
-       delay(1000);
-    }
+  } else if (firstByte == 6) {
+    uint8_t tensionValue;
+    commSerial.readBytes(&tensionValue, 1);
+    manageTension(tensionValue);
+  }
+}
+
+void manageTension(uint8_t tension) {
+  if (tension == 1) {
+    digitalWrite(pinLED_batAmarillo, LOW);
+    digitalWrite(pinLED_batRojo, LOW);
+    digitalWrite(pinLED_batVerde, HIGH);
+  } else if (tension == 2) {
+    digitalWrite(pinLED_batVerde, LOW);
+    digitalWrite(pinLED_batRojo, LOW);
+    digitalWrite(pinLED_batAmarillo, HIGH);
+  } else if (tension == 3) {
+    digitalWrite(pinLED_batVerde, LOW);
+    digitalWrite(pinLED_batAmarillo, LOW);
+    digitalWrite(pinLED_batRojo, HIGH);
   }
 }
