@@ -39,11 +39,7 @@ void Motor::SetPower(int power) {
     digitalWrite(_pinDir1, LOW);
     digitalWrite(_pinDir2, HIGH);
     analogWrite(_pinPWM, -power);
-  } /* else {
-    digitalWrite(_pinDir1, LOW);
-    digitalWrite(_pinDir2, LOW);
-    analogWrite(_pinPWM, 150);
-  } */
+  }
 }
 
 void Motor::SetSpeed(int actualSpeed, int targetSpeed) {

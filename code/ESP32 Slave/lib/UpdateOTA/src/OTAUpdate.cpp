@@ -63,6 +63,13 @@ void Updater::OTAInit() {
     Serial.println("HTTP server started");
 }
 
+bool Updater::SetStaticIP(uint8_t fourth_octet) {
+    const IPAddress staticIP(192, 168, 144, fourth_octet);
+    const IPAddress gateway(192, 168, 144, 1);
+    const IPAddress subnet(255, 255, 255, 0);
+    return WiFi.config(staticIP, gateway, subnet);
+}
+
 AsyncWebServer Updater::GetServer() {
     return _server;
 }

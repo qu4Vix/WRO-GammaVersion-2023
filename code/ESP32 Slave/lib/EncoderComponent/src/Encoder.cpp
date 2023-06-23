@@ -31,3 +31,13 @@ void Encoder::UpdateEncoder() {
     _encoder++;
     _encoderTotal++;
 }
+
+long Encoder::GetEncoder() {
+    return _encoderTotal;
+}
+
+long Encoder::GetEncoderInterval() {
+    long _encoderInterval = _encoder;
+    _encoder = 0;
+    return _encoderInterval;
+}

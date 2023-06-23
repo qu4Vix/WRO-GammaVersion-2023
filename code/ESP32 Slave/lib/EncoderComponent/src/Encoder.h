@@ -15,6 +15,8 @@ class Encoder{
     public:
     Encoder(byte pinEncoder);
     void Attach(byte mode);
+    long GetEncoder();
+    long GetEncoderInterval();
 
     private:
     static Encoder* _sEncoder;

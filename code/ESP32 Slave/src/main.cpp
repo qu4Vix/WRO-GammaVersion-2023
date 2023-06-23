@@ -1,39 +1,25 @@
 #include <Arduino.h>
-#include <OTAUpdate.h>
 #include <Motor.h>
 #include <CServo.h>
-#include <ESP32Encoder.h>
+#include <Encoder.h>
 #include "credentials.h"
+#include "pinAssignments.h"
 
-// LED pins
-#define pinLED_1 34
-#define pinLED_2 35
+#define ENABLE_WIFI true
 
-// Motor Pins (PWM + 3 Digital)
-#define pinPWM 14
-#define pinDir1 26
-#define pinDir2 27
-#define pinEn 25
-
-// Servo pin (PWM)
-#define pinServo 13
-
-// Encoder pins
-#define pinEncoder_CLK 33
-#define pinEncoder_DT 32
-
-// Interchip Communication pins (UART)
-#define pinTX 4
-#define pinRX 2
-
-// Battery tension reader pin
-#define pinTension 36
-
+#if ENABLE_WIFI == true
+#include <OTAUpdate.h>
 Updater miota(81);
+#endif
+
+HardwareSerial commSerial(1);
 Motor mimotor(pinPWM, pinDir1, pinDir2, pinEn, 0, 0);
 CServo miservo(pinServo);
-ESP32Encoder encoder;
+Encoder miencoder(pinEncoder_DT);
 
+void receiveData();
+void sendEncoder(uint32_t encoder);
+void sendTension(uint8_t batteryLevel);
 void actualizarBateria();
 // Battery levels
 // 8.4V - 3600
@@ -45,38 +31,99 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Empezando");
   
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(pinTension, INPUT);
-  digitalWrite(LED_BUILTIN, HIGH);
+  setPinModes();
 
+  commSerial.begin(1000000, SERIAL_8N1, pinTX, pinRX);
+
+  #if ENABLE_WIFI == true
   miota.WiFiInit();
+  miota.SetStaticIP(251);
   miota.OTAInit();
+  #endif
+  
+  Serial.print("Time: ");
+  delay(5000);
 
-  encoder.attachFullQuad ( pinEncoder_DT, pinEncoder_CLK );
-  encoder.setCount ( 0 );
-
-  //mimotor.Init();
+  miencoder.Attach(CHANGE);
+  mimotor.Init();
   //mimotor.SetPower(60);
   //miservo.BeginPWM();
   //miservo.Attach();
 
-  
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  //actualizarBateria();
-  long newPosition = encoder.getCount();
-  Serial.println(newPosition);
+  
+  while (commSerial.available())
+  {
+    receiveData();
+  }
+
+  static uint32_t prev_ms_bat = millis();
+  if (millis() > prev_ms_bat) {
+    actualizarBateria();
+    prev_ms_bat = millis() + 500;
+  }
+
+  static uint32_t prev_ms_encoder = millis();
+  if (millis() > prev_ms_encoder) {
+    Serial.println(miencoder.GetEncoder());
+    prev_ms_encoder = millis() + 500;
+  }
+}
+
+void sendEncoder(uint32_t encoder) {
+  commSerial.write(7);
+  for (uint8_t i; i<4; i++) {
+    commSerial.write((encoder>>(8*i)) & 0xff);
+  }
+}
+
+void sendTension(uint8_t batteryLevel) {
+  commSerial.write(6);
+  commSerial.write(batteryLevel);
+}
+
+void receiveData() {
+  uint8_t firstByte;
+  commSerial.readBytes(&firstByte, 1);
+  if (firstByte == 1)
+  {
+    uint8_t _velocity;
+    commSerial.readBytes(&_velocity, 1);
+    uint8_t _speed = (_velocity >> 1);
+    int speed = (_velocity - (_speed<<1)) ? -_speed : _speed;
+    mimotor.SetPower(speed);
+  } else 
+  if (firstByte == 2)
+  {
+    uint8_t _angleByte;
+    commSerial.readBytes(&_angleByte, 1);
+    int _angle = map(_angleByte, 0, 180, -90, 90);
+  }
+}
+
+int decodeSpeed(uint8_t speed) {
+  int _speed = (speed >> 7) ? -speed : speed;
+  return _speed;
+}
+
+int decodeAngle(uint8_t angle) {
+  int _angle = map(angle, 0, 180, -90, 90);
+  return _angle;
 }
 
 void actualizarBateria() {
   uint16_t tension = analogRead(pinTension);
   if (tension >= 3300) {
-    // VERDE
+    // HIGH LEVEL
+    sendTension(1);
   } else if (tension >= 3100) {
-    // AMARILLO
+    // MEDIUM LEVEL
+    sendTension(2);
   } else {
-    // ROJO
+    // LOW LEVEL
+    sendTension(3);
   }
 }
