@@ -27,4 +27,12 @@ class Encoder{
     volatile long _encoderTotal;
 };
 
+class Speedometer{
+    public:
+    Speedometer();
+    
+    private:
+    int _speed;
+};
+
 #endif

@@ -22,6 +22,7 @@ class MPU {
     void WorkOffset();  // Work out the offset of the mpu
     void UpdateAngle(); // Update the angle (Call in the loop)
     float GetAngle();   // Returns the angle
+    void measureFirstMillis();
 
     private:
     MPU9250 _mpu;   // MPU object
@@ -30,6 +31,7 @@ class MPU {
     float _offset;
     float _angle;
     uint32_t _prev_ms_angle;
+    bool _firstMillisRead;
 };
 
 #endif

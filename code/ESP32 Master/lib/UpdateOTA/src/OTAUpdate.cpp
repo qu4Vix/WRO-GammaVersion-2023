@@ -46,6 +46,7 @@ void Updater::WiFiInit() {
     WiFi.begin(ssid, password);
 
     while (WiFi.status() != WL_CONNECTED) {
+        Serial.println(WiFi.status());
         delay(200);
         Serial.print(".");
     }
@@ -63,11 +64,13 @@ void Updater::OTAInit() {
     Serial.println("HTTP server started");
 }
 
-bool Updater::SetStaticIP(uint8_t fourth_octet) {
+void Updater::SetStaticIP(uint8_t fourth_octet) {
     const IPAddress staticIP(192, 168, 144, fourth_octet);
     const IPAddress gateway(192, 168, 144, 1);
     const IPAddress subnet(255, 255, 255, 0);
-    return WiFi.config(staticIP, gateway, subnet);
+    while (!WiFi.config(staticIP, gateway, subnet)) {
+        delay(100);
+    }
 }
 
 AsyncWebServer Updater::GetServer() {

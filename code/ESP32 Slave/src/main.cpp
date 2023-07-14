@@ -5,17 +5,24 @@
 #include "credentials.h"
 #include "pinAssignments.h"
 
-#define ENABLE_WIFI true
+#define ENABLE_WIFI fasle
 
 #if ENABLE_WIFI == true
 #include <OTAUpdate.h>
-Updater miota(81);
+Updater miota(80);
 #endif
 
+hw_timer_t* timerHandler;
+
 HardwareSerial commSerial(1);
-Motor mimotor(pinPWM, pinDir1, pinDir2, pinEn, 0, 0);
+Motor mimotor(pinPWM, pinDir1, pinDir2, pinEn, 2, 1);
 CServo miservo(pinServo);
 Encoder miencoder(pinEncoder_DT);
+
+volatile int speed;
+int objectiveSpeed;
+
+void IRAM_ATTR onTimer();
 
 void receiveData();
 void sendEncoder(uint32_t encoder);
@@ -44,12 +51,17 @@ void setup() {
   Serial.print("Time: ");
   delay(5000);
 
+  timerHandler = timerBegin(0, 80, true);
+  timerAttachInterrupt(timerHandler, &onTimer, false);
+  timerAlarmWrite(timerHandler, 32000, true);
+
   miencoder.Attach(CHANGE);
   mimotor.Init();
-  //mimotor.SetPower(60);
-  //miservo.BeginPWM();
-  //miservo.Attach();
-
+  //mimotor.SetPower(40);
+  miservo.BeginPWM();
+  miservo.Attach();
+  miservo.MoveServo(0);
+  timerAlarmEnable(timerHandler);
 }
 
 void loop() {
@@ -60,6 +72,12 @@ void loop() {
     receiveData();
   }
 
+  static uint32_t prev_ms_speed;
+  if (millis() > prev_ms_speed) {
+    mimotor.SetSpeed(speed, objectiveSpeed);
+    prev_ms_speed = millis() + 32;
+  }
+
   static uint32_t prev_ms_bat = millis();
   if (millis() > prev_ms_bat) {
     actualizarBateria();
@@ -68,16 +86,22 @@ void loop() {
 
   static uint32_t prev_ms_encoder = millis();
   if (millis() > prev_ms_encoder) {
-    Serial.println(miencoder.GetEncoder());
+    sendEncoder(miencoder.GetEncoder());
     prev_ms_encoder = millis() + 500;
   }
 }
 
+void IRAM_ATTR onTimer() {
+  speed = miencoder.GetEncoderInterval();
+}
+
 void sendEncoder(uint32_t encoder) {
-  commSerial.write(7);
+  uint8_t encoderBuffer[4];
   for (uint8_t i; i<4; i++) {
-    commSerial.write((encoder>>(8*i)) & 0xff);
+    encoderBuffer[i] = ((encoder>>(8*i)) & 0xff);
   }
+  commSerial.write(7);
+  commSerial.write(encoderBuffer, 4);
 }
 
 void sendTension(uint8_t batteryLevel) {
@@ -92,26 +116,17 @@ void receiveData() {
   {
     uint8_t _velocity;
     commSerial.readBytes(&_velocity, 1);
-    uint8_t _speed = (_velocity >> 1);
-    int speed = (_velocity - (_speed<<1)) ? -_speed : _speed;
-    mimotor.SetPower(speed);
+    uint8_t _speed = (_velocity >> 1)<<1;
+    int speed = (_velocity - _speed) ? -_speed : _speed;
+    objectiveSpeed = speed;
   } else 
   if (firstByte == 2)
   {
     uint8_t _angleByte;
     commSerial.readBytes(&_angleByte, 1);
     int _angle = map(_angleByte, 0, 180, -90, 90);
+    miservo.MoveServo(_angle);
   }
-}
-
-int decodeSpeed(uint8_t speed) {
-  int _speed = (speed >> 7) ? -speed : speed;
-  return _speed;
-}
-
-int decodeAngle(uint8_t angle) {
-  int _angle = map(angle, 0, 180, -90, 90);
-  return _angle;
 }
 
 void actualizarBateria() {

@@ -12,12 +12,14 @@ TelemetryManager::TelemetryManager(IPAddress ip, uint16_t port) {
 }
 
 void TelemetryManager::StartUDP(uint16_t localPort) {
-    _udp.begin(localPort);
+    while(!_udp.begin(localPort)) {
+        delay(100);
+    }
 }
 
 void TelemetryManager::SendString(String dataString) {
     _udp.beginPacket(_receiversIP, _receiversPort);
-    _udp.print(dataString);
+    _udp.printf(dataString.c_str());
     _udp.endPacket();
 }
 
@@ -26,8 +28,8 @@ void TelemetryManager::AddData(String data) {
 }
 
 void TelemetryManager::SendData() {
-    if (_dataString[sizeof(_dataString)] == ',') {
-        _dataString[sizeof(_dataString)] = '\0';
+    if (_dataString[sizeof(_dataString)-1] == ',') {
+        _dataString[sizeof(_dataString)-1] = '\0';
     }
     SendString(_dataString);
 }

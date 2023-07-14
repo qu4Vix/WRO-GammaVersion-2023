@@ -31,4 +31,5 @@ void setPinModes() {
     pinMode(pinLED_batRojo, OUTPUT);
     pinMode(pinLED_batAmarillo, OUTPUT);
     pinMode(pinLED_batVerde, OUTPUT);
+    pinMode(pinLIDAR_motor, OUTPUT);
 }

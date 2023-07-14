@@ -42,7 +42,7 @@ class Updater {
     Updater(uint16_t port);     // Class constructor, creates the Server object in the port established; additionally the routes are created
     void WiFiInit();            // Begins the WiFi with the ssid and the password externally defined
     void OTAInit();             // Begins the OTA and the Server
-    bool SetStaticIP(uint8_t fourth_octet);         // Sets a static IP in order to make upload easier
+    void SetStaticIP(uint8_t fourth_octet);         // Sets a static IP in order to make upload easier
     AsyncWebServer GetServer(); // Returns the Server object (In order to assign more routes)
 
     private:
