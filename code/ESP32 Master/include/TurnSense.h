@@ -3,17 +3,23 @@
 int8_t TurnSense(float* Distancias)
 {
     float distanciaF;
-    int angulo;
+    int angulo = 358;
     int prevangulo = 359;
-    float distancia = 0;
+    float distancia = *(Distancias+angulo);
     float prevdistancia = *(Distancias+prevangulo);
 
     int angulomax;
 
     while (prevdistancia == 0)
-        {
-            prevdistancia = *(Distancias);
-        }
+    {
+        prevdistancia = *(Distancias+prevangulo);
+        distanciaF = *(Distancias+prevangulo);
+    }
+
+    while (distancia == 0)
+    {
+        distancia = *(Distancias+angulo);
+    }
 
     while (abs(distancia-prevdistancia) < 20)
     {
@@ -24,5 +30,13 @@ int8_t TurnSense(float* Distancias)
             angulo--;
             distancia = *(Distancias+angulo);
         } 
+    }
+
+    while (*(Distancias+270) == 0);
+
+    if ((tan(359-prevangulo)*distanciaF) > *(Distancias+270))
+    {
+        //Girar izquierda
+        return 1; //o -1
     }
 }
