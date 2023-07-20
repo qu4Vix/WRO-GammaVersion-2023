@@ -94,7 +94,7 @@ void setup() {
   while (!IS_OK(lidar.getDeviceInfo(info, 100))) delay(500);
   rplidar_response_device_health_t health;
   lidar.getHealth(health);
-  Serial.println("info: " + String(health.status) +", " + String(health.error_code));
+  //Serial.println("info: " + String(health.status) +", " + String(health.error_code));
 
   // detected...
   lidar.startScan();
