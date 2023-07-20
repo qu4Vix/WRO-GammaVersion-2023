@@ -9,7 +9,7 @@ int8_t TurnSense(float* Distancias)
     float prevdistancia = *(Distancias+prevangulo);
 
     int angulomax;
-
+    Serial.println("in");
     while (prevdistancia == 0)
     {
         prevdistancia = *(Distancias+prevangulo);
@@ -39,4 +39,5 @@ int8_t TurnSense(float* Distancias)
         //Girar izquierda
         return 1; //o -1
     }
+    else return 0;
 }

@@ -3,6 +3,7 @@
 #include <RPLidar.h>
 #include "credentials.h"
 #include "pinAssignments.h"
+#include "TurnSense.h"
 
 #define ENABLE_WIFI false
 
@@ -42,7 +43,9 @@ uint32_t prev_encoderMeasurement;
 
 float lidarDistance = 3000;
 float lidarAngle;
-float distances[360];
+//float distances[360];
+uint16_t distancesArray[2][360];
+volatile bool arrayLecture = false;
 
 bool reading = false;
 bool writing = false;
@@ -62,7 +65,7 @@ void manageTension(uint8_t tension);
 
 uint16_t getIndex(float angle);
 // Angle from 0 to 359
-float readDistance(uint16_t angle);
+uint16_t readDistance(uint16_t angle);
 // Create code for task1
 void Task1Code(void * pvParameters);
 
@@ -89,6 +92,10 @@ void setup() {
   lidar.begin(lidarSerial);
   rplidar_response_device_info_t info;
   while (!IS_OK(lidar.getDeviceInfo(info, 100))) delay(500);
+  rplidar_response_device_health_t health;
+  lidar.getHealth(health);
+  Serial.println("info: " + String(health.status) +", " + String(health.error_code));
+
   // detected...
   lidar.startScan();
 
@@ -96,11 +103,11 @@ void setup() {
   xTaskCreatePinnedToCore(
     Task1Code,
     "Task1",
-    10000,
+    100000,
     NULL,
-    1,
+    10,
     &Task1,
-    1);
+    0);
   delay(500);
   
   // start motor rotating at max allowed speed
@@ -117,11 +124,16 @@ void setup() {
   digitalWrite(pinLED_verde, LOW);*/
   delay(500);
 
-  setSpeed(20);
+  //setSpeed(20);
   mimpu.measureFirstMillis();
 }
 
 void loop() {
+  Serial.println(readDistance(0));
+  delay(20);
+}
+
+void eloop() {
   // put your main code here, to run repeatedly:
   while (commSerial.available())
   {
@@ -141,61 +153,49 @@ void loop() {
     prev_directionError = actual_directionError;
     prev_ms_direction = millis() + 20;
   }
-
-  if (IS_OK(lidar.waitPoint(100))) {
-    float lidarDistance_new = lidar.getCurrentPoint().distance; //distance value in mm unit
-    if (lidarDistance_new) {
-      lidarDistance = lidarDistance_new;
-      lidarAngle    = lidar.getCurrentPoint().angle; //anglue value in degree
-      if (lidarAngle > 180) lidarAngle -= 360;
-      bool startBit = lidar.getCurrentPoint().startBit; //whether this point is belong to a new scan
-    }
+  
+  // if (IS_OK(lidar.waitPoint(100))) {
+  //   float lidarDistance_new = lidar.getCurrentPoint().distance; //distance value in mm unit
+  //   if (lidarDistance_new) {
+  //     lidarDistance = lidarDistance_new;
+  //     lidarAngle    = lidar.getCurrentPoint().angle; //anglue value in degree
+  //     if (lidarAngle > 180) lidarAngle -= 360; // lidar mide + derecha - izquierda
+  //     bool startBit = lidar.getCurrentPoint().startBit; //whether this point is belong to a new scan
+  //   }
     
-    //perform data processing here...
-  }
-
+  //   //perform data processing here...
+  // }
+  float distance0 = readDistance(0);
   switch (estado)
   {
   case e::Recto:
-    digitalWrite(pinLED_rojo, HIGH);
-    if (giros == 9) {
+    digitalWrite(pinLED_rojo, LOW);
+    digitalWrite(pinLED_verde, LOW);
+    if (giros == 13) {
       setSpeed(0);
-    }
-    if (abs(lidarAngle) < 1) {
-      if (lidarDistance <= 1200) {
-        estado = e::DecidiendoGiro;
-        digitalWrite(pinLED_rojo, LOW);
-      }
+    } else
+    if ((distance0 < 1200) && (distance0 > 0)) {
+      digitalWrite(pinLED_rojo, HIGH);
+      estado = e::DecidiendoGiro;
     }
     break;
   case e::DecidiendoGiro:
-    if (abs(90 - lidarAngle) < 1) { // lidar mide + derecha - izquierda
-      if (lidarDistance >= 1000) {
-        digitalWrite(pinLED_verde, HIGH);
-        turnSense = -1;
-        prev_encoderMeasurement = encoderMeasurement;
-        estado = e::PreGiro;
-      }
-    } else if (abs(90 + lidarAngle) < 1) {
-      if (lidarDistance >= 1000) {
-        digitalWrite(pinLED_verde, HIGH);
-        turnSense = 1;
-        prev_encoderMeasurement = encoderMeasurement;
-        estado = e::PreGiro;
-      }
-    }
-    break;
-  case e::PreGiro:
-    if (encoderMeasurement - prev_encoderMeasurement > 30) {
-      objectiveDirection += 90*turnSense;
+    if (readDistance(90) >= 1000) {
+      turnSense = -1;
+      objectiveDirection -= 90;
+      estado = e::Girando;
+    } else
+    if (readDistance(270) >= 1000) {
+      turnSense = 1;
+      objectiveDirection += 90;
       estado = e::Girando;
     }
     break;
   case e::Girando:
+    digitalWrite(pinLED_verde, HIGH);
     if (abs(90 * giros - mimpu.GetAngle() * turnSense) < 10) {
       giros++;
       estado = e::Recto;
-      digitalWrite(pinLED_verde, LOW);
     }
     break;
   }
@@ -265,11 +265,11 @@ uint16_t getIndex(float angle) {
 }
 
 // Angle from 0 to 359
-float readDistance(uint16_t angle) {
-  while (writing);
-  reading = true;
-  float distanceMeasure = distances[angle];
-  reading = false;
+uint16_t readDistance(uint16_t angle) {
+  //while (writing);
+  //reading = true;
+  uint16_t distanceMeasure = distancesArray[arrayLecture][angle];
+  //reading = false;
   return distanceMeasure;
 }
 
@@ -279,17 +279,29 @@ void Task1Code(void * pvParameters) {
   //Serial.println(xPortGetCoreID());
 
   for (;;) {
-    while (reading);
+    //while (reading);
+    vTaskDelay(1);
+    //Serial.println(xPortGetCoreID());
     if (IS_OK(lidar.waitPoint())) {
-      float distance = lidar.getCurrentPoint().distance; //distance value in mm unit
+      
+      uint16_t distance = uint16_t(lidar.getCurrentPoint().distance); //distance value in mm unit
       float angle    = lidar.getCurrentPoint().angle; //anglue value in degree
-      //bool  startBit = lidar.getCurrentPoint().startBit; //whether this point is belong to a new scan
+      bool  startBit = lidar.getCurrentPoint().startBit; //whether this point is belong to a new scan
+      byte quality = lidar.getCurrentPoint().quality;
 
-      writing = true;
-      //distances[uint16_t(angle)] = distance;
+      if (startBit) {
+        Serial.println("Startbit: " + String(startBit));
+        arrayLecture = !arrayLecture;
+        memset(distancesArray[!arrayLecture], 0, 360);
+      }
+
+      //writing = true;
       uint16_t index = getIndex(angle);
-      distances[index] = distance;
-      writing = false;
+      distancesArray[!arrayLecture][index] = distance;
+      if ((angle<0.5) || (angle>=359.5)) {
+        Serial.println("dist: "+String(distance) + " quality: " + String(quality));
+      }
+      //writing = false;
     }
   }
 }
