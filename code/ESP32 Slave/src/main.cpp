@@ -87,7 +87,7 @@ void loop() {
   static uint32_t prev_ms_encoder = millis();
   if (millis() > prev_ms_encoder) {
     sendEncoder(miencoder.GetEncoder());
-    prev_ms_encoder = millis() + 500;
+    prev_ms_encoder = millis() + 32;
   }
 }
 

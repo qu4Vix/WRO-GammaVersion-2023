@@ -71,6 +71,8 @@ void Updater::SetStaticIP(uint8_t fourth_octet) {
     while (!WiFi.config(staticIP, gateway, subnet)) {
         delay(100);
     }
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
 }
 
 AsyncWebServer Updater::GetServer() {
