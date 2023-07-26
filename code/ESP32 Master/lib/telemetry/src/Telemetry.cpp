@@ -28,8 +28,6 @@ void TelemetryManager::AddData(String data) {
 }
 
 void TelemetryManager::SendData() {
-    if (_dataString[sizeof(_dataString)-1] == ',') {
-        _dataString[sizeof(_dataString)-1] = '\0';
-    }
     SendString(_dataString);
+    _dataString = "";
 }

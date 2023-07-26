@@ -65,8 +65,8 @@ void Updater::OTAInit() {
 }
 
 void Updater::SetStaticIP(uint8_t fourth_octet) {
-    const IPAddress staticIP(192, 168, 144, fourth_octet);
-    const IPAddress gateway(192, 168, 144, 1);
+    const IPAddress staticIP(192, 168, 0, fourth_octet);
+    const IPAddress gateway(192, 168, 0, 1);
     const IPAddress subnet(255, 255, 255, 0);
     while (!WiFi.config(staticIP, gateway, subnet)) {
         delay(100);

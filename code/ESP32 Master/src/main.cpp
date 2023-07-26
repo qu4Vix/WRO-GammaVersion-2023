@@ -5,13 +5,16 @@
 #include "pinAssignments.h"
 #include "TurnSense.h"
 
-#define ENABLE_WIFI false
+#define ENABLE_WIFI true
+
+#define telemetriaTX 19
+#define telemetriaRX 23
 
 #if ENABLE_WIFI == true
 #include <OTAUpdate.h>
 #include <Telemetry.h>
 
-IPAddress receiversIP(192, 168, 144, 14);
+IPAddress receiversIP(192, 168, 0, 102);
 uint16_t receiversPort = 4210;
 uint16_t udpPort = 1234;
 uint16_t otaPort = 80;
@@ -41,9 +44,7 @@ int8_t turnSense;
 uint32_t encoderMeasurement;
 uint32_t prev_encoderMeasurement;
 
-float lidarDistance = 3000;
 float lidarAngle;
-//float distances[360];
 uint16_t distancesArray[2][360];
 volatile bool arrayLecture = false;
 
@@ -55,6 +56,7 @@ HardwareSerial lidarSerial(2);
 RPLidar lidar;
 HardwareSerial commSerial(1);
 TaskHandle_t Task1;
+HardwareSerial teleSerial(0);
 
 int directionError(int bearing, int target);
 
@@ -67,11 +69,12 @@ uint16_t getIndex(float angle);
 // Angle from 0 to 359
 uint16_t readDistance(uint16_t angle);
 // Create code for task1
-void Task1Code(void * pvParameters);
+void LidarTaskCode(void * pvParameters);
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
+  teleSerial.begin(1000000, SERIAL_8N1, telemetriaRX, telemetriaTX);
 
   setPinModes();
 
@@ -83,8 +86,9 @@ void setup() {
     miota.OTAInit();
 
     telemetry.StartUDP(udpPort);
+    digitalWrite(pinLED_rojo, HIGH);
   #endif
-
+  
   mimpu.BeginWire(pinMPU_SDA, pinMPU_SCL, 400000);
   mimpu.Setup();
   mimpu.WorkOffset();
@@ -101,7 +105,7 @@ void setup() {
 
   // Asign task 1 to core 0
   xTaskCreatePinnedToCore(
-    Task1Code,
+    LidarTaskCode,
     "Task1",
     100000,
     NULL,
@@ -109,7 +113,7 @@ void setup() {
     &Task1,
     0);
   delay(500);
-  
+  digitalWrite(pinLED_rojo, LOW);
   // start motor rotating at max allowed speed
   analogWrite(pinLIDAR_motor, 255);
   delay(500);
@@ -124,16 +128,11 @@ void setup() {
   digitalWrite(pinLED_verde, LOW);*/
   delay(500);
 
-  //setSpeed(20);
+  setSpeed(20);
   mimpu.measureFirstMillis();
 }
 
 void loop() {
-  Serial.println(readDistance(0));
-  delay(20);
-}
-
-void eloop() {
   // put your main code here, to run repeatedly:
   while (commSerial.available())
   {
@@ -153,19 +152,8 @@ void eloop() {
     prev_directionError = actual_directionError;
     prev_ms_direction = millis() + 20;
   }
-  
-  // if (IS_OK(lidar.waitPoint(100))) {
-  //   float lidarDistance_new = lidar.getCurrentPoint().distance; //distance value in mm unit
-  //   if (lidarDistance_new) {
-  //     lidarDistance = lidarDistance_new;
-  //     lidarAngle    = lidar.getCurrentPoint().angle; //anglue value in degree
-  //     if (lidarAngle > 180) lidarAngle -= 360; // lidar mide + derecha - izquierda
-  //     bool startBit = lidar.getCurrentPoint().startBit; //whether this point is belong to a new scan
-  //   }
-    
-  //   //perform data processing here...
-  // }
-  float distance0 = readDistance(0);
+  static uint16_t i = 0;
+  int distance0 = readDistance(i);
   switch (estado)
   {
   case e::Recto:
@@ -174,7 +162,7 @@ void eloop() {
     if (giros == 13) {
       setSpeed(0);
     } else
-    if ((distance0 < 1200) && (distance0 > 0)) {
+    if ((distance0 < 1000) && (distance0 > 300)) {
       digitalWrite(pinLED_rojo, HIGH);
       estado = e::DecidiendoGiro;
     }
@@ -199,6 +187,22 @@ void eloop() {
     }
     break;
   }
+  i++;
+  if (i==5) i=355;
+  if (i==360) i=0;
+  teleSerial.write(01);
+  teleSerial.write(uint16_t(distance0));
+  /*
+  telemetry.AddData(String(estado));
+  for (uint16_t arrayIndex; arrayIndex < 5; arrayIndex++) {
+    telemetry.AddData(String(arrayIndex));
+    telemetry.AddData(String(readDistance(arrayIndex)));
+  }
+  for (uint16_t arrayIndex=355; arrayIndex < 360; arrayIndex++) {
+    telemetry.AddData(String(arrayIndex));
+    telemetry.AddData(String(readDistance(arrayIndex)));
+  }
+  telemetry.SendData();*/
 }
 
 int directionError(int bearing, int target) {
@@ -253,7 +257,6 @@ void manageTension(uint8_t tension) {
   }
 }
 
-
 uint16_t getIndex(float angle) {
   if (angle >= 359.5) return 0;
   float error = angle - uint16_t(angle);
@@ -266,42 +269,36 @@ uint16_t getIndex(float angle) {
 
 // Angle from 0 to 359
 uint16_t readDistance(uint16_t angle) {
-  //while (writing);
-  //reading = true;
   uint16_t distanceMeasure = distancesArray[arrayLecture][angle];
-  //reading = false;
-  return distanceMeasure;
+  if ((distanceMeasure < 3100) && (distanceMeasure > 100)){
+    return distanceMeasure;
+  } else return 0;
 }
 
-// Create code for task1
-void Task1Code(void * pvParameters) {
-  //Serial.print("Task1 running on core ");
-  //Serial.println(xPortGetCoreID());
-
+// Create code for the task which manages the lidar
+void LidarTaskCode(void * pvParameters) {
   for (;;) {
-    //while (reading);
     vTaskDelay(1);
-    //Serial.println(xPortGetCoreID());
     if (IS_OK(lidar.waitPoint())) {
-      
+      // record data
       uint16_t distance = uint16_t(lidar.getCurrentPoint().distance); //distance value in mm unit
-      float angle    = lidar.getCurrentPoint().angle; //anglue value in degree
-      bool  startBit = lidar.getCurrentPoint().startBit; //whether this point is belong to a new scan
+      float angle    = lidar.getCurrentPoint().angle; //angle value in degrees
+      bool  startBit = lidar.getCurrentPoint().startBit; //whether this point belongs to a new scan
       byte quality = lidar.getCurrentPoint().quality;
 
+      // when scan completed switch array
       if (startBit) {
-        Serial.println("Startbit: " + String(startBit));
+        Serial.println("Startbit");
         arrayLecture = !arrayLecture;
         memset(distancesArray[!arrayLecture], 0, 360);
       }
 
-      //writing = true;
+      // obtain the index associated with the angle and store in the array
       uint16_t index = getIndex(angle);
       distancesArray[!arrayLecture][index] = distance;
-      if ((angle<0.5) || (angle>=359.5)) {
+      if ((angle < 0.5) || (angle >= 359.5)) {
         Serial.println("dist: "+String(distance) + " quality: " + String(quality));
       }
-      //writing = false;
     }
   }
 }
