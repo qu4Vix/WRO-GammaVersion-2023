@@ -7,24 +7,29 @@
 import socket
 # use ifconfig -a to find this IP. If your pi is the first and only device connected to the ESP32, 
 # this should be the correct IP by default on the raspberry pi
-LOCAL_UDP_IP = "192.168.0.102"
-SHARED_UDP_PORT = 4210
+LOCAL_UDP_IP = "192.168.144.235"
+SHARED_UDP_PORT = 5005
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Internet  # UDP
-#sock.bind((LOCAL_UDP_IP, SHARED_UDP_PORT))
+sock.bind((LOCAL_UDP_IP, SHARED_UDP_PORT))
 def decodeBytes(data):
     index = 0
     decoded = []
-    while index < len(data):
-        cab = data[index]
+    if len(data) > 1:
+        cab = data[0]
         if cab == 4:
-            for i in range(0,720, 2):
-                d = data[index+i+1] | (data[index+i+2]<<8)
+            for i in range(1,719, 2):
+                d = data[i]<<8 | (data[i+1])
                 decoded.append(d)
-            index+=721
-    return decoded    
-def loop():
-    while True:
-        data, addr = sock.recvfrom(2048)
-        print("received: %s" % data)
+            return decoded
+        else:
+            return data
+    else:
+        return -1
+
+while True:
+    data, addr = sock.recvfrom(1000000)
+    print("received")
+    decoded = decodeBytes(data)
+    print(decoded)
 """if __name__ == "__main__":
     loop()"""

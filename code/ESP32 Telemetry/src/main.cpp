@@ -10,7 +10,7 @@ HardwareSerial SerialTelem(1);
 void connectToWiFi(const char * ssid, const char * pwd);
 void WiFiEvent(WiFiEvent_t event);
 
-const char * udpAddress = "192.168.137.1";
+const char * udpAddress = "192.168.144.235";
 const int udpPort = 5005;
 
 //Are we currently connected?
@@ -42,14 +42,23 @@ void setup(){
   Serial.begin(1000000);
   SerialTelem.begin(1000000,SERIAL_8N1,5,6); //Rx = 5, Tx = 6
 
-  connectToWiFi("DESKTOP-T4CK6AC 1519", "53J542q[");
+  connectToWiFi("DiverBOT_Invitados", "bucleinfinito");
   timeStart = millis();
   posBuffer = 0;
   posTele = 0;
+
+  delay(2000);
+  Serial.println("Antes");
+
+  udp.beginPacket(udpAddress,udpPort);
+  udp.printf("Hola");
+  udp.endPacket();
+
+  Serial.println("Despues");
 }
 
 void loop(){
-  if(Serial.available()){
+  if(SerialTelem.available()){
     receiveData();
   }
 }
@@ -101,13 +110,15 @@ enum cab {
 };
 
 void receiveData() {
-  uint8_t cabecera = Serial.read();
+  posTele = 0;
+  uint8_t cabecera = SerialTelem.read();
   TeleBuffer[posTele] = cabecera;
   posTele++;
 
-  for (posTele = 0; posTele < DataLenth[cabecera]; posTele++)
+  for (posTele = 1; posTele < DataLenth[cabecera]; posTele++)
   {
-    TeleBuffer[posTele] = Serial.read();
+    while (!SerialTelem.available());
+    TeleBuffer[posTele] = SerialTelem.read();
   }
   
   udp.beginPacket(udpAddress,udpPort);

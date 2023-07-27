@@ -5,7 +5,7 @@
 #include "pinAssignments.h"
 #include "TurnSense.h"
 
-#define ENABLE_WIFI true
+#define ENABLE_WIFI false
 
 #define telemetriaTX 19
 #define telemetriaRX 23
@@ -43,6 +43,8 @@ int8_t turnSense;
 
 uint32_t encoderMeasurement;
 uint32_t prev_encoderMeasurement;
+
+uint32_t prev_ms_tele = 0;
 
 float lidarAngle;
 uint16_t distancesArray[2][360];
@@ -152,6 +154,27 @@ void loop() {
     prev_directionError = actual_directionError;
     prev_ms_direction = millis() + 20;
   }
+
+  if (millis() > prev_ms_tele+300)
+  {
+    teleSerial.write(04);
+    uint16_t zi=0;
+    uint16_t pi=0;
+    while (zi < 360)
+    {
+      if (zi==pi)
+      {
+        teleSerial.write(distancesArray[arrayLecture][zi]>>8);
+        pi++;
+      }
+      else{
+        teleSerial.write(distancesArray[arrayLecture][zi]&0x00ff);
+        zi++;
+      }
+    }
+    prev_ms_tele = millis();
+  }
+  
   static uint16_t i = 0;
   int distance0 = readDistance(i);
   switch (estado)
@@ -190,8 +213,7 @@ void loop() {
   i++;
   if (i==5) i=355;
   if (i==360) i=0;
-  teleSerial.write(01);
-  teleSerial.write(uint16_t(distance0));
+ 
   /*
   telemetry.AddData(String(estado));
   for (uint16_t arrayIndex; arrayIndex < 5; arrayIndex++) {
