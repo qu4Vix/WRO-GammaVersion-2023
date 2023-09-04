@@ -28,18 +28,23 @@ TelemetryManager telemetry(receiversIP, receiversPort);
 int prev_setAngle;
 int actual_directionError;
 int prev_directionError;
-int objectiveDirection;
+float objectiveDirection;
+
+#define encodersPerCM 1
 
 enum e {
+  Inicio,
   Recto,
   DecidiendoGiro,
   PreGiro,
-  Girando
+  Girando,
+  Final
 };
 uint8_t estado = e::Recto;
 
 uint8_t giros = 1;
-int8_t turnSense;
+uint8_t tramo = 0;
+int8_t turnSense = 1;
 
 uint32_t encoderMeasurement;
 uint32_t prev_encoderMeasurement;
@@ -50,8 +55,16 @@ float lidarAngle;
 uint16_t distancesArray[2][360];
 volatile bool arrayLecture = false;
 
-bool reading = false;
-bool writing = false;
+double xPosition = 0;
+double yPosition = 0;
+
+#define positionKP 20
+#define positionKD 5
+int objectivePosition = 0;
+int positionError;
+int prev_positionError;
+bool fixXposition = true;
+bool fixInverted = true;
 
 MPU mimpu;
 HardwareSerial lidarSerial(2);
@@ -72,6 +85,13 @@ uint16_t getIndex(float angle);
 uint16_t readDistance(uint16_t angle);
 // Create code for task1
 void LidarTaskCode(void * pvParameters);
+
+void iteratePosition();
+void turn();        // turn
+void setXcoord();   // set the coordinate x axis
+void setYcoord();   // set the coordinate y axis
+void decideTurn();  // detect the sense of turn
+void checkTurn();   // check wether you have to turn or not
 
 void setup() {
   // put your setup code here, to run once:
@@ -119,6 +139,9 @@ void setup() {
   // start motor rotating at max allowed speed
   analogWrite(pinLIDAR_motor, 255);
   delay(500);
+
+  setYcoord();
+
   /*
   digitalWrite(pinLED_verde, HIGH);
   while (digitalRead(pinBoton)) {
@@ -143,6 +166,25 @@ void loop() {
 
   mimpu.UpdateAngle();
 
+  static uint32_t prev_ms_position = millis();
+  if (millis() > prev_ms_position) {
+    if (encoderMeasurement != prev_encoderMeasurement) {
+      double dy = (encoderMeasurement - prev_encoderMeasurement) * cos(mimpu.GetAngle() * (M_PI/180)) / encodersPerCM;
+      double dx = (encoderMeasurement - prev_encoderMeasurement) * sin(mimpu.GetAngle() * (M_PI/180)) / encodersPerCM;
+      prev_encoderMeasurement = encoderMeasurement;
+      xPosition = dx * turnSense;
+      yPosition += dy;
+      iteratePosition();
+    }
+    prev_ms_position = millis() + 32;
+  }
+
+  static uint32_t prev_ms_turn = millis();
+  if (millis() > prev_ms_turn) {
+    checkTurn();
+    prev_ms_turn = millis() + 50;
+  }
+
   static uint32_t prev_ms_direction = millis();
   if (millis() > prev_ms_direction) {
     actual_directionError = constrain(directionError(mimpu.GetAngle(), objectiveDirection), -127, 127);
@@ -155,76 +197,26 @@ void loop() {
     prev_ms_direction = millis() + 20;
   }
 
-  if (millis() > prev_ms_tele+300)
-  {
-    teleSerial.write(04);
-    uint16_t zi=0;
-    uint16_t pi=0;
-    while (zi < 360)
-    {
-      if (zi==pi)
-      {
-        teleSerial.write(distancesArray[arrayLecture][zi]>>8);
-        pi++;
-      }
-      else{
-        teleSerial.write(distancesArray[arrayLecture][zi]&0x00ff);
-        zi++;
-      }
-    }
-    prev_ms_tele = millis();
-  }
-  
-  static uint16_t i = 0;
-  int distance0 = readDistance(i);
   switch (estado)
   {
+  case e::Inicio:
+    if (yPosition >= 260) {
+      decideTurn();
+      setXcoord();
+      estado = e::Recto;
+    }
+  break;
   case e::Recto:
     digitalWrite(pinLED_rojo, LOW);
     digitalWrite(pinLED_verde, LOW);
     if (giros == 13) {
-      setSpeed(0);
-    } else
-    if ((distance0 < 1000) && (distance0 > 300)) {
-      digitalWrite(pinLED_rojo, HIGH);
-      estado = e::DecidiendoGiro;
+      estado = e::Final;
     }
-    break;
-  case e::DecidiendoGiro:
-    if (readDistance(90) >= 1000) {
-      turnSense = -1;
-      objectiveDirection -= 90;
-      estado = e::Girando;
-    } else
-    if (readDistance(270) >= 1000) {
-      turnSense = 1;
-      objectiveDirection += 90;
-      estado = e::Girando;
-    }
-    break;
-  case e::Girando:
-    digitalWrite(pinLED_verde, HIGH);
-    if (abs(90 * giros - mimpu.GetAngle() * turnSense) < 10) {
-      giros++;
-      estado = e::Recto;
-    }
-    break;
+  break;
+  case e::Final:
+    setSpeed(0);
+  break;
   }
-  i++;
-  if (i==5) i=355;
-  if (i==360) i=0;
- 
-  /*
-  telemetry.AddData(String(estado));
-  for (uint16_t arrayIndex; arrayIndex < 5; arrayIndex++) {
-    telemetry.AddData(String(arrayIndex));
-    telemetry.AddData(String(readDistance(arrayIndex)));
-  }
-  for (uint16_t arrayIndex=355; arrayIndex < 360; arrayIndex++) {
-    telemetry.AddData(String(arrayIndex));
-    telemetry.AddData(String(readDistance(arrayIndex)));
-  }
-  telemetry.SendData();*/
 }
 
 int directionError(int bearing, int target) {
@@ -319,8 +311,120 @@ void LidarTaskCode(void * pvParameters) {
       uint16_t index = getIndex(angle);
       distancesArray[!arrayLecture][index] = distance;
       if ((angle < 0.5) || (angle >= 359.5)) {
-        Serial.println("dist: "+String(distance) + " quality: " + String(quality));
+        Serial.println("dist: "+ String(distance) + " quality: " + String(quality));
       }
     }
+  }
+}
+
+void iteratePosition() {
+  prev_positionError = positionError;
+  if (fixXposition) {
+    positionError = directionError(xPosition, objectivePosition);
+    objectiveDirection = constrain(positionKP * positionError + positionKD * (positionError - prev_positionError), -90, 90);
+  } else {
+    positionError = directionError(yPosition, objectivePosition);
+    objectiveDirection = constrain(positionKP * positionError + positionKD * (positionError - prev_positionError), -90, 90);
+  }
+  if (fixInverted) objectiveDirection = -objectiveDirection;
+}
+
+void turn() {
+  switch ((tramo+1) * turnSense)
+  {
+  case -1:
+    objectivePosition = 275;
+    fixInverted = false;
+    tramo = 1;
+    break;
+  
+  case -2:
+    objectivePosition = 275;
+    fixInverted = false;
+    tramo = 2;
+    break;
+
+  case -3:
+    objectivePosition = 25;
+    fixInverted = true;
+    tramo = 3;
+    break;
+
+  case -4:
+    objectivePosition = 25;
+    fixInverted = true;
+    tramo = 0;
+    break;
+  
+  case 1:
+    objectivePosition = 275;
+    fixInverted = true;
+    tramo = 1;
+    break;
+  
+  case 2:
+    objectivePosition = 25;
+    fixInverted = false;
+    tramo = 2;
+    break;
+
+  case 3:
+    objectivePosition = 25;
+    fixInverted = false;
+    tramo = 3;
+    break;
+
+  case 4:
+    objectivePosition = 275;
+    fixInverted = true;
+    tramo = 0;
+    break;
+  }
+  giros++;
+  fixXposition = !fixXposition;
+}
+
+void setXcoord(uint16_t i) {
+  xPosition = i;
+}
+
+void setYcoord(uint16_t f) {
+  yPosition = 300 - f;
+}
+
+void checkTurn() {
+  switch ((tramo+1) * turnSense)
+  {
+  case -1:
+    if (yPosition >= 275) turn();
+    break;
+  
+  case -2:
+    if (xPosition >= 275) turn();
+    break;
+
+  case -3:
+    if (yPosition <= 25) turn();
+    break;
+
+  case -4:
+    if (xPosition <= 25) turn();
+    break;
+
+  case 1:
+    if (yPosition >= 275) turn();
+    break;
+  
+  case 2:
+    if (xPosition <= 25) turn();
+    break;
+
+  case 3:
+    if (yPosition <= 25) turn();
+    break;
+
+  case 4:
+    if (xPosition >= 275) turn();
+    break;
   }
 }
