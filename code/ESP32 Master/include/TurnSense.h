@@ -1,43 +1,57 @@
 #include <Arduino.h>
 
-int8_t TurnSense(float* Distancias)
+int8_t TurnSense(uint16_t* Distancias, int* Millis)
 {
-    float distanciaF;
-    int angulo = 358;
-    int prevangulo = 359;
-    float distancia = *(Distancias+angulo);
-    float prevdistancia = *(Distancias+prevangulo);
+    int16_t medidasd;
+    uint16_t medidasi;
 
-    int angulomax;
-    Serial.println("in");
-    while (prevdistancia == 0)
-    {
-        prevdistancia = *(Distancias+prevangulo);
-        distanciaF = *(Distancias+prevangulo);
-    }
+    uint16_t rep;
 
-    while (distancia == 0)
+    uint16_t id = 80;
+    while (rep < 10)
     {
-        distancia = *(Distancias+angulo);
-    }
-
-    while (abs(distancia-prevdistancia) < 20)
-    {
-        angulo = prevangulo - 1;
-        distancia = *(Distancias+angulo);
-        while (distancia == 0)
+        if (*(Millis+id) < (millis()+500))
         {
-            angulo--;
-            distancia = *(Distancias+angulo);
-        } 
+            if (*(Distancias+id) > 1000)
+            {
+                medidasd++;
+            }
+        }
+        if (id == 100)
+        {
+            id = 79;
+            rep++;
+        }
+        id++;
     }
-
-    while (*(Distancias+270) == 0);
-
-    if ((tan(359-prevangulo)*distanciaF) > *(Distancias+270))
+    
+    uint16_t ii = 260;
+    while (rep < 10)
     {
-        //Girar izquierda
-        return 1; //o -1
+        if (*(Millis+ii) < (millis()+500))
+        {
+            if (*(Distancias+ii) > 1000)
+            {
+                medidasi++;
+            }
+        }
+        if (ii == 280)
+        {
+            ii = 259;
+            rep++;
+        }
+        ii++;
     }
-    else return 0;
+
+    if (medidasd > medidasi && medidasd > 3)
+    {
+        //derecha
+        return -1; //1
+    }
+    else if (medidasi > medidasd && medidasi > 3)
+    {
+        //izquierda
+        return 1; //-1
+    }
+    else{return 0;}
 }

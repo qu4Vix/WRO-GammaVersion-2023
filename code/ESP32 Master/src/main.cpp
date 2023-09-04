@@ -30,7 +30,16 @@ int actual_directionError;
 int prev_directionError;
 float objectiveDirection;
 
-#define encodersPerCM 1
+uint8_t bateria;
+
+bool firma1Detectada = true;
+uint8_t firma1X = 18;
+uint8_t firma1Y = 19;
+bool firma2Detectada = true;
+uint8_t firma2X = 20;
+uint8_t firma2Y = 21;
+
+#define MMperEncoder 1.41
 
 enum e {
   Inicio,
@@ -55,6 +64,9 @@ float lidarAngle;
 uint16_t distancesArray[2][360];
 volatile bool arrayLecture = false;
 
+uint16_t distances[360];
+int distancesMillis[360];
+
 double xPosition = 0;
 double yPosition = 0;
 
@@ -65,6 +77,8 @@ int positionError;
 int prev_positionError;
 bool fixXposition = true;
 bool fixInverted = true;
+
+int lidar0;
 
 MPU mimpu;
 HardwareSerial lidarSerial(2);
@@ -86,10 +100,12 @@ uint16_t readDistance(uint16_t angle);
 // Create code for task1
 void LidarTaskCode(void * pvParameters);
 
+void enviarDato(byte* pointer, int8_t size);
+
 void iteratePosition();
 void turn();        // turn
-void setXcoord();   // set the coordinate x axis
-void setYcoord();   // set the coordinate y axis
+void setXcoord(uint16_t i);   // set the coordinate x axis
+void setYcoord(uint16_t f);   // set the coordinate y axis
 void decideTurn();  // detect the sense of turn
 void checkTurn();   // check wether you have to turn or not
 
@@ -140,7 +156,14 @@ void setup() {
   analogWrite(pinLIDAR_motor, 255);
   delay(500);
 
-  setYcoord();
+  while (readDistance(5) == 0)
+  {
+    
+  }
+  
+  setYcoord(readDistance(5));
+  lidar0=readDistance(5);
+  yPosition=1500;
 
   /*
   digitalWrite(pinLED_verde, HIGH);
@@ -153,7 +176,7 @@ void setup() {
   digitalWrite(pinLED_verde, LOW);*/
   delay(500);
 
-  setSpeed(20);
+  setSpeed(10);
   mimpu.measureFirstMillis();
 }
 
@@ -169,14 +192,95 @@ void loop() {
   static uint32_t prev_ms_position = millis();
   if (millis() > prev_ms_position) {
     if (encoderMeasurement != prev_encoderMeasurement) {
-      double dy = (encoderMeasurement - prev_encoderMeasurement) * cos(mimpu.GetAngle() * (M_PI/180)) / encodersPerCM;
-      double dx = (encoderMeasurement - prev_encoderMeasurement) * sin(mimpu.GetAngle() * (M_PI/180)) / encodersPerCM;
+      double dy = (encoderMeasurement - prev_encoderMeasurement) * cos(mimpu.GetAngle() * (M_PI/180)) / MMperEncoder;
+      double dx = (encoderMeasurement - prev_encoderMeasurement) * sin(mimpu.GetAngle() * (M_PI/180)) / MMperEncoder;
       prev_encoderMeasurement = encoderMeasurement;
       xPosition = dx * turnSense;
       yPosition += dy;
       iteratePosition();
     }
     prev_ms_position = millis() + 32;
+  }
+
+  if (millis() > prev_ms_tele+100)
+  {
+
+    /*FORMATO TELEMETRIA
+    |inicioTX            |TipoPaquete|Datos|
+      0xAA,0xAA,0xAA,0xAA,0x--,0x--...0x--
+    */
+   /*ENVIAMOS PAQUETE TIPO 4 DISTANCIAS*/
+    for(int i = 0; i<4; i++){
+      teleSerial.write(0xAA);
+    }
+    teleSerial.write(04);
+    uint16_t zi=0;
+    while (zi < 360)
+    {
+        teleSerial.write(distances[zi]>>8);
+        teleSerial.write(distances[zi]&0x00ff);
+        zi++;
+    }
+    /*/ENVIAMOS PAQUETE TIPO 3 CALIDAD MEDIDA/
+    for(int i = 0; i<4; i++){   //Enviamos la cabecera de inicio de paquete
+      teleSerial.write(0xAA);
+    }
+    teleSerial.write(03);
+    uint16_t pi=0;
+    while (pi < 360){
+        teleSerial.write(distancesArray[1][pi]);
+        pi++;
+    }*/
+
+    /*ENVIAMOS PAQUETE TIPO 5 INFORMACION GENERAL*/
+                /*
+            --Posicion x 8 bytes
+            --Posición y 8 bytes
+            --Posición x Objetivo 8 bytes
+            --Posición y Objetivo 8 bytes
+            --Encoder 32 uint32
+            --Estado 8bits  uint
+            --batería 8bits uint
+            --Ángulo 16 float
+            --Angulo Objetivo 16 float
+            --Cámara firma1 Detectada 1 byte
+            --Cámara firma1 x 8 bits
+            --Cámara firma1 y 8 bits
+            --Cámara firma2 Detectada 1byte
+            --Cámara firma2 x 8bits
+            --Cámara firma2 y 8bits
+            
+            |XXXX|YYYY|MMMM|NNNN|QQQQ|W|E|RRRR|TTTT|U|I|O|A|S|D
+             0000 0000 0111 1111 1112 2 2 2222 2223 3 3 3 3 3 3
+             1234 5678 9012 3456 7890 1 2 3456 7890 1 2 3 4 5 6
+            */
+    for(int i = 0; i<4; i++){   //Enviamos la cabecera de inicio de paquete
+      teleSerial.write(0xAA);
+    }
+    teleSerial.write(05);
+    long posXLong = xPosition;
+    long posYLong = yPosition;
+    long posXObjLong = objectivePosition;
+    long posYObjLong = lidar0;
+    long anguloLong = mimpu.GetAngle();
+    long anguloObjLong = objectiveDirection;
+    enviarDato((byte*)&posXLong,sizeof(posXLong));
+    enviarDato((byte*)&posYLong,sizeof(posYLong));
+    enviarDato((byte*)&posXObjLong,sizeof(posXObjLong));
+    enviarDato((byte*)&posYObjLong,sizeof(posYObjLong));
+    enviarDato((byte*)&encoderMeasurement,sizeof(encoderMeasurement));
+    enviarDato((byte*)&estado,sizeof(estado));
+    enviarDato((byte*)&bateria,sizeof(bateria));
+    enviarDato((byte*)&anguloLong,sizeof(anguloLong));
+    enviarDato((byte*)&anguloObjLong,sizeof(anguloObjLong));
+    enviarDato((byte*)&firma1Detectada,sizeof(firma1Detectada));
+    enviarDato((byte*)&firma1X,sizeof(firma1X));
+    enviarDato((byte*)&firma1Y,sizeof(firma1Y));
+    enviarDato((byte*)&firma2Detectada,sizeof(firma2Detectada));
+    enviarDato((byte*)&firma2X,sizeof(firma2X));
+    enviarDato((byte*)&firma2Y,sizeof(firma2Y));    
+
+    prev_ms_tele = millis();
   }
 
   static uint32_t prev_ms_turn = millis();
@@ -202,7 +306,7 @@ void loop() {
   case e::Inicio:
     if (yPosition >= 260) {
       decideTurn();
-      setXcoord();
+      setXcoord(readDistance(270));
       estado = e::Recto;
     }
   break;
@@ -251,6 +355,7 @@ void receiveData() {
   } else if (firstByte == 6) {
     uint8_t tensionValue;
     commSerial.readBytes(&tensionValue, 1);
+    bateria = tensionValue;
     manageTension(tensionValue);
   }
 }
@@ -283,10 +388,20 @@ uint16_t getIndex(float angle) {
 
 // Angle from 0 to 359
 uint16_t readDistance(uint16_t angle) {
-  uint16_t distanceMeasure = distancesArray[arrayLecture][angle];
-  if ((distanceMeasure < 3100) && (distanceMeasure > 100)){
-    return distanceMeasure;
-  } else return 0;
+  int16_t i = -2;
+  int16_t pi = -2;
+  while(i<2){
+    if (distances[angle+i] == 0)
+    {
+      i++;
+    }
+    if (distancesMillis[angle+i] < distancesMillis[angle+pi])
+    {
+      pi = i;
+    }
+    i++;
+  }
+  return distances[pi];
 }
 
 // Create code for the task which manages the lidar
@@ -300,19 +415,10 @@ void LidarTaskCode(void * pvParameters) {
       bool  startBit = lidar.getCurrentPoint().startBit; //whether this point belongs to a new scan
       byte quality = lidar.getCurrentPoint().quality;
 
-      // when scan completed switch array
-      if (startBit) {
-        Serial.println("Startbit");
-        arrayLecture = !arrayLecture;
-        memset(distancesArray[!arrayLecture], 0, 360);
-      }
-
       // obtain the index associated with the angle and store in the array
       uint16_t index = getIndex(angle);
-      distancesArray[!arrayLecture][index] = distance;
-      if ((angle < 0.5) || (angle >= 359.5)) {
-        Serial.println("dist: "+ String(distance) + " quality: " + String(quality));
-      }
+      distances[index] = distance;
+      distancesMillis[index] = millis();
     }
   }
 }
@@ -333,49 +439,49 @@ void turn() {
   switch ((tramo+1) * turnSense)
   {
   case -1:
-    objectivePosition = 275;
+    objectivePosition = 2750;
     fixInverted = false;
     tramo = 1;
     break;
   
   case -2:
-    objectivePosition = 275;
+    objectivePosition = 2750;
     fixInverted = false;
     tramo = 2;
     break;
 
   case -3:
-    objectivePosition = 25;
+    objectivePosition = 250;
     fixInverted = true;
     tramo = 3;
     break;
 
   case -4:
-    objectivePosition = 25;
+    objectivePosition = 250;
     fixInverted = true;
     tramo = 0;
     break;
   
   case 1:
-    objectivePosition = 275;
+    objectivePosition = 2750;
     fixInverted = true;
     tramo = 1;
     break;
   
   case 2:
-    objectivePosition = 25;
+    objectivePosition = 250;
     fixInverted = false;
     tramo = 2;
     break;
 
   case 3:
-    objectivePosition = 25;
+    objectivePosition = 250;
     fixInverted = false;
     tramo = 3;
     break;
 
   case 4:
-    objectivePosition = 275;
+    objectivePosition = 2750;
     fixInverted = true;
     tramo = 0;
     break;
@@ -389,42 +495,55 @@ void setXcoord(uint16_t i) {
 }
 
 void setYcoord(uint16_t f) {
-  yPosition = 300 - f;
+  yPosition = 3000 - f;
 }
 
 void checkTurn() {
   switch ((tramo+1) * turnSense)
   {
   case -1:
-    if (yPosition >= 275) turn();
+    if (yPosition >= 2750) turn();
     break;
   
   case -2:
-    if (xPosition >= 275) turn();
+    if (xPosition >= 2750) turn();
     break;
 
   case -3:
-    if (yPosition <= 25) turn();
+    if (yPosition <= 250) turn();
     break;
 
   case -4:
-    if (xPosition <= 25) turn();
+    if (xPosition <= 250) turn();
     break;
 
   case 1:
-    if (yPosition >= 275) turn();
+    if (yPosition >= 2750) turn();
     break;
   
   case 2:
-    if (xPosition <= 25) turn();
+    if (xPosition <= 250) turn();
     break;
 
   case 3:
-    if (yPosition <= 25) turn();
+    if (yPosition <= 250) turn();
     break;
 
   case 4:
-    if (xPosition >= 275) turn();
+    if (xPosition >= 2750) turn();
     break;
+  }
+}
+
+void decideTurn(){
+  turnSense = TurnSense(distances, distancesMillis);
+}
+
+void enviarDato(byte* pointer, int8_t size){
+  int8_t posicion = size - 1;   //recorreremos la memoria desde el de mas valor hara el de menos, ya que el 
+                          //receptor espera ese orde MSB
+  while(posicion >= 0 ){
+    teleSerial.write(pointer[posicion]);
+    posicion--;
   }
 }
