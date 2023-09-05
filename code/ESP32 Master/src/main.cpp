@@ -317,7 +317,9 @@ void loop() {
     }
   break;
   case e::Final:
-    setSpeed(0);
+    if (yPosition >= 1200) {
+      setSpeed(0);
+    }
   break;
   }
 }
@@ -516,42 +518,42 @@ void setXcoord(uint16_t i) {
 }
 
 void setYcoord(uint16_t f) {
-  yPosition = 3000 - f - 150 ;
+  yPosition = 3000 - f - 150;
 }
 
 void checkTurn() {
   switch ((tramo+1) * turnSense)
   {
   case -1:
-    if (yPosition >= 2700) turn();
-    break;
-  
-  case -2:
-    if (xPosition >= 2700) turn();
-    break;
-
-  case -3:
-    if (yPosition <= 300) turn();
-    break;
-
-  case -4:
-    if (xPosition <= 300) turn();
-    break;
-
-  case 1:
     if (yPosition >= 2700 - 200) turn();
     break;
   
-  case 2:
-    if (xPosition <= 300 + 200) turn();
+  case -2:
+    if (xPosition >= 2700 - 200) turn();
     break;
 
-  case 3:
+  case -3:
     if (yPosition <= 300 + 200) turn();
     break;
 
+  case -4:
+    if (xPosition <= 300 + 300) turn();
+    break;
+
+  case 1:
+    if (yPosition >= 2700 - 300) turn();
+    break;
+  
+  case 2:
+    if (xPosition <= 300 + 300) turn();
+    break;
+
+  case 3:
+    if (yPosition <= 300 + 300) turn();
+    break;
+
   case 4:
-    if (xPosition >= 2700 - 200) turn();
+    if (xPosition >= 2700 - 300) turn();
     break;
   }
 }
