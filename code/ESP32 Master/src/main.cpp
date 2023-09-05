@@ -193,7 +193,7 @@ void loop() {
       double dy = (encoderMeasurement - prev_encoderMeasurement) * cos(mimpu.GetAngle() * (M_PI/180)) * MMperEncoder;
       double dx = (encoderMeasurement - prev_encoderMeasurement) * sin(mimpu.GetAngle() * (M_PI/180)) * MMperEncoder;
       prev_encoderMeasurement = encoderMeasurement;
-      xPosition -= dx;
+      xPosition -= dx; // x -> + derecha - izquierda
       yPosition += dy;
       iteratePosition();
     }
@@ -309,8 +309,6 @@ void loop() {
     }
   break;
   case e::Recto:
-    digitalWrite(pinLED_rojo, LOW);
-    digitalWrite(pinLED_verde, LOW);
     if (giros == 13) {
       estado = e::Final;
     }
@@ -448,15 +446,20 @@ void LidarTaskCode(void * pvParameters) {
       // record data
       uint16_t distance = uint16_t(lidar.getCurrentPoint().distance); //distance value in mm unit
       float angle    = lidar.getCurrentPoint().angle; //angle value in degrees
-      bool  startBit = lidar.getCurrentPoint().startBit; //whether this point belongs to a new scan
-      byte quality = lidar.getCurrentPoint().quality;
 
       // obtain the index associated with the angle and store in the array
       uint16_t index = getIndex(angle);
+
       if (distance > 100 && distance < 3000)
-      {
+      { 
+        //bool  startBit = lidar.getCurrentPoint().startBit; //whether this point belongs to a new scan
+        //byte quality = lidar.getCurrentPoint().quality;
+
         distances[index] = distance;
         distancesMillis[index] = millis();
+      } else {
+        distances[index] = 0;
+        distancesMillis[index] = 0;
       }
     }
   }
