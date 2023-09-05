@@ -382,7 +382,7 @@ uint16_t getIndex(float angle) {
     return uint16_t(angle + 1);
   }
 }
-
+/*
 // Angle from 0 to 359
 uint16_t readDistance(uint16_t angle) {
   uint16_t i;
@@ -425,6 +425,38 @@ uint16_t readDistance(uint16_t angle) {
     }
   }
   return 4000;
+}*/
+
+
+// Angle from 0 to 359
+uint16_t readDistance(uint16_t angle) {
+  int index = -5;
+  int validIndex = index;
+  int validMeasures[10];
+
+  while (index < 5) {
+    // work out the resultant index for the distances array
+    int resAngle = angle + index;
+    if (resAngle < 0) resAngle += 360;
+
+    // check whether the measurement is non zero and new and store it into the next place of the array
+    if (distances[resAngle] == 0) {}
+    else if ((millis() - distancesMillis[resAngle]) < 500)
+    {
+      validMeasures[validIndex] = resAngle;
+      validIndex++;
+    }
+
+    index++;
+  }
+  // search for two consecutive measurements that are similar
+  for (int arrayIndex = 1; arrayIndex < validIndex; arrayIndex++) {
+    if (abs(distances[validMeasures[arrayIndex]] - distances[validMeasures[arrayIndex - 1]]) < 50) {
+      return distances[validMeasures[arrayIndex]];
+    }
+  }
+  // if the search fails return 0
+  return 0;
 }
 
 // Create code for the task which manages the lidar
