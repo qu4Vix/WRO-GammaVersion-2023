@@ -3,7 +3,6 @@
 #include <RPLidar.h>
 #include "credentials.h"
 #include "pinAssignments.h"
-#include "TurnSense.h"
 
 #define ENABLE_WIFI false
 
@@ -65,13 +64,13 @@ uint16_t distancesArray[2][360];
 volatile bool arrayLecture = false;
 
 uint16_t distances[360];
-int distancesMillis[360];
+static uint16_t distancesMillis[360];
 
 double xPosition = 0;
 double yPosition = 0;
 
-#define positionKP 1
-#define positionKD 0
+#define positionKP 0.1
+#define positionKD 1
 int objectivePosition = 0;
 int positionError;
 int prev_positionError;
@@ -154,12 +153,14 @@ void setup() {
   digitalWrite(pinLED_rojo, LOW);
   // start motor rotating at max allowed speed
   analogWrite(pinLIDAR_motor, 255);
-  delay(2000);
+  delay(500);
 
   while (readDistance(0) == 0)
   {
-    
+    digitalWrite(pinLED_batAmarillo, HIGH);
   }
+  digitalWrite(pinLED_batAmarillo, LOW);
+  digitalWrite(pinLED_batVerde, HIGH);
   setYcoord(readDistance(0));
   lidar0=readDistance(0);
   digitalWrite(pinLED_batVerde, HIGH);
@@ -175,7 +176,7 @@ void setup() {
   digitalWrite(pinLED_verde, LOW);*/
   delay(500);
 
-  //setSpeed(10);
+  setSpeed(5);
   mimpu.measureFirstMillis();
 }
 
@@ -306,6 +307,7 @@ void loop() {
     if (yPosition >= 2500) {
       decideTurn();
       setXcoord(readDistance(270));
+      objectivePosition = xPosition;
       estado = e::Recto;
     }
   break;
@@ -329,7 +331,7 @@ void setSpeed(int speed) {
   commSerial.write(1);
   speed = constrain(speed, -100, 100);
   uint8_t _speed = (abs(speed) << 1) | ((speed >= 0) ? 0 : 1);
-  commSerial.write(speed);
+  commSerial.write(_speed);
 }
 
 void setSteering(int angle) {
@@ -382,51 +384,6 @@ uint16_t getIndex(float angle) {
     return uint16_t(angle + 1);
   }
 }
-/*
-// Angle from 0 to 359
-uint16_t readDistance(uint16_t angle) {
-  uint16_t i;
-  if (angle == 0)
-  {
-    i = 355;
-  }
-  else i = angle-5;
-  uint8_t pi;
-  uint8_t ni = 0;
-  uint8_t nuevas[4];
-  while(i<10){
-    if (i == 360)
-    {
-      i = 0;
-    }
-    
-    if (distances[i] == 0)
-    {
-    }
-    else if ((millis()-distancesMillis[i]) < 2000)
-    {
-      nuevas[ni] = i;
-      ni++;
-      if(ni==4) ni=0;
-    }
-    i++;
-
-    if (ni == 3)
-    {
-      pi=0;
-      while (pi < 3)
-      {
-        if (abs(distances[nuevas[pi]]-distances[nuevas[pi+1]]) < 50)
-        {
-          return distances[nuevas[pi]];
-        }
-        else {pi++;}
-      }
-    }
-  }
-  return 4000;
-}*/
-
 
 // Angle from 0 to 359
 uint16_t readDistance(uint16_t angle) {
@@ -490,12 +447,12 @@ void iteratePosition() {
   prev_positionError = positionError;
   if (fixXposition) {
     positionError = directionError(xPosition, objectivePosition);
-    objectiveDirection = constrain(positionKP * positionError + positionKD * (positionError - prev_positionError), -90, 90);
   } else {
     positionError = directionError(yPosition, objectivePosition);
-    objectiveDirection = constrain(positionKP * positionError + positionKD * (positionError - prev_positionError), -90, 90);
   }
+  objectiveDirection = constrain(positionKP * positionError + positionKD * (positionError - prev_positionError), -90, 90);
   if (fixInverted) objectiveDirection = -objectiveDirection;
+  objectiveDirection += 90 * (giros-1) * turnSense;
 }
 
 void turn() {
@@ -532,13 +489,13 @@ void turn() {
     break;
   
   case 2:
-    objectivePosition = 300;
+    objectivePosition = 400;
     fixInverted = false;
     tramo = 2;
     break;
 
   case 3:
-    objectivePosition = 300;
+    objectivePosition = 400;
     fixInverted = false;
     tramo = 3;
     break;
@@ -551,6 +508,7 @@ void turn() {
   }
   giros++;
   fixXposition = !fixXposition;
+  firma1Detectada = fixXposition;
 }
 
 void setXcoord(uint16_t i) {
@@ -558,7 +516,7 @@ void setXcoord(uint16_t i) {
 }
 
 void setYcoord(uint16_t f) {
-  yPosition = 3000 - f;
+  yPosition = 3000 - f - 150 ;
 }
 
 void checkTurn() {
@@ -581,25 +539,33 @@ void checkTurn() {
     break;
 
   case 1:
-    if (yPosition >= 2700) turn();
+    if (yPosition >= 2700 - 200) turn();
     break;
   
   case 2:
-    if (xPosition <= 300) turn();
+    if (xPosition <= 300 + 200) turn();
     break;
 
   case 3:
-    if (yPosition <= 300) turn();
+    if (yPosition <= 300 + 200) turn();
     break;
 
   case 4:
-    if (xPosition >= 2700) turn();
+    if (xPosition >= 2700 - 200) turn();
     break;
   }
 }
 
 void decideTurn(){
-  turnSense = TurnSense(distances, distancesMillis);
+  if (readDistance(90) > readDistance(270) && readDistance(90) > 1000)
+  {
+    turnSense = -1;
+  }
+  else if (readDistance(270) > readDistance(90) && readDistance(270) > 1000)
+  {
+    turnSense = 1;
+  }
+  else turnSense = 0;
 }
 
 void enviarDato(byte* pointer, int8_t size){
