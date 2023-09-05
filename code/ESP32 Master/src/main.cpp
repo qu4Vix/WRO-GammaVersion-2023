@@ -49,11 +49,11 @@ enum e {
   Girando,
   Final
 };
-uint8_t estado = e::Recto;
+uint8_t estado = e::Inicio;
 
 uint8_t giros = 1;
 uint8_t tramo = 0;
-int8_t turnSense = 1;
+int8_t turnSense = 0;
 
 uint32_t encoderMeasurement;
 uint32_t prev_encoderMeasurement;
@@ -70,8 +70,8 @@ int distancesMillis[360];
 double xPosition = 0;
 double yPosition = 0;
 
-#define positionKP 20
-#define positionKD 5
+#define positionKP 1
+#define positionKD 0
 int objectivePosition = 0;
 int positionError;
 int prev_positionError;
@@ -156,14 +156,12 @@ void setup() {
   analogWrite(pinLIDAR_motor, 255);
   delay(500);
 
-  while (readDistance(5) == 0)
+  while (readDistance(0) == 0)
   {
     
   }
-  
-  setYcoord(readDistance(5));
-  lidar0=readDistance(5);
-  yPosition=1500;
+  setYcoord(readDistance(0));
+  lidar0=readDistance(0);
 
   /*
   digitalWrite(pinLED_verde, HIGH);
@@ -176,7 +174,7 @@ void setup() {
   digitalWrite(pinLED_verde, LOW);*/
   delay(500);
 
-  setSpeed(10);
+  //setSpeed(10);
   mimpu.measureFirstMillis();
 }
 
@@ -192,10 +190,10 @@ void loop() {
   static uint32_t prev_ms_position = millis();
   if (millis() > prev_ms_position) {
     if (encoderMeasurement != prev_encoderMeasurement) {
-      double dy = (encoderMeasurement - prev_encoderMeasurement) * cos(mimpu.GetAngle() * (M_PI/180)) / MMperEncoder;
-      double dx = (encoderMeasurement - prev_encoderMeasurement) * sin(mimpu.GetAngle() * (M_PI/180)) / MMperEncoder;
+      double dy = (encoderMeasurement - prev_encoderMeasurement) * cos(mimpu.GetAngle() * (M_PI/180)) * MMperEncoder;
+      double dx = (encoderMeasurement - prev_encoderMeasurement) * sin(mimpu.GetAngle() * (M_PI/180)) * MMperEncoder;
       prev_encoderMeasurement = encoderMeasurement;
-      xPosition = dx * turnSense;
+      xPosition -= dx;
       yPosition += dy;
       iteratePosition();
     }
@@ -261,7 +259,7 @@ void loop() {
     long posXLong = xPosition;
     long posYLong = yPosition;
     long posXObjLong = objectivePosition;
-    long posYObjLong = lidar0;
+    long posYObjLong = turnSense;
     long anguloLong = mimpu.GetAngle();
     long anguloObjLong = objectiveDirection;
     enviarDato((byte*)&posXLong,sizeof(posXLong));
@@ -304,7 +302,7 @@ void loop() {
   switch (estado)
   {
   case e::Inicio:
-    if (yPosition >= 260) {
+    if (yPosition >= 2500) {
       decideTurn();
       setXcoord(readDistance(270));
       estado = e::Recto;
@@ -388,20 +386,58 @@ uint16_t getIndex(float angle) {
 
 // Angle from 0 to 359
 uint16_t readDistance(uint16_t angle) {
-  int16_t i = -2;
-  int16_t pi = -2;
-  while(i<2){
-    if (distances[angle+i] == 0)
-    {
+  if (angle == 0)
+  {
+    int16_t i = 0;
+    int16_t pi = 0;
+    uint8_t ni = 0;
+    uint16_t nuevas[3];
+    while(i<10){
+      if (i == 360)
+      {
+        i = 0;
+      }
+      
+      if (distances[350+i] == 0)
+      {
+        i++;
+      }
+      if (distancesMillis[350+i] < distancesMillis[350+pi])
+      {
+        pi = i;
+        nuevas[ni] = i;
+        ni++;
+      }
       i++;
     }
-    if (distancesMillis[angle+i] < distancesMillis[angle+pi])
+    if ((nuevas[1]-nuevas[0]) < 100 or (nuevas[1]-nuevas[2]) < 100)
     {
-      pi = i;
+      return distances[pi];
     }
-    i++;
   }
-  return distances[pi];
+  else{
+    int16_t i = -5;
+    int16_t pi = -5;
+    uint8_t ni = 0;
+    uint16_t nuevas[3];
+    while(i<10){
+      if (distances[angle+i] == 0)
+      {
+        i++;
+      }
+      if (distancesMillis[angle+i] < distancesMillis[angle+pi] && (millis()-distancesMillis[i]) < 500)
+      {
+        pi = i;
+        nuevas[ni] = i;
+        ni++;
+      }
+      i++;
+    }
+    if ((nuevas[1]-nuevas[0]) < 100 or (nuevas[1]-nuevas[2]) < 100)
+    {
+      return distances[pi];
+    }
+  }
 }
 
 // Create code for the task which manages the lidar
@@ -417,8 +453,11 @@ void LidarTaskCode(void * pvParameters) {
 
       // obtain the index associated with the angle and store in the array
       uint16_t index = getIndex(angle);
-      distances[index] = distance;
-      distancesMillis[index] = millis();
+      if (distance > 100 && distance < 3000)
+      {
+        distances[index] = distance;
+        distancesMillis[index] = millis();
+      }
     }
   }
 }
@@ -439,49 +478,49 @@ void turn() {
   switch ((tramo+1) * turnSense)
   {
   case -1:
-    objectivePosition = 2750;
+    objectivePosition = 2700;
     fixInverted = false;
     tramo = 1;
     break;
   
   case -2:
-    objectivePosition = 2750;
+    objectivePosition = 2700;
     fixInverted = false;
     tramo = 2;
     break;
 
   case -3:
-    objectivePosition = 250;
+    objectivePosition = 300;
     fixInverted = true;
     tramo = 3;
     break;
 
   case -4:
-    objectivePosition = 250;
+    objectivePosition = 300;
     fixInverted = true;
     tramo = 0;
     break;
   
   case 1:
-    objectivePosition = 2750;
+    objectivePosition = 2700;
     fixInverted = true;
     tramo = 1;
     break;
   
   case 2:
-    objectivePosition = 250;
+    objectivePosition = 300;
     fixInverted = false;
     tramo = 2;
     break;
 
   case 3:
-    objectivePosition = 250;
+    objectivePosition = 300;
     fixInverted = false;
     tramo = 3;
     break;
 
   case 4:
-    objectivePosition = 2750;
+    objectivePosition = 2700;
     fixInverted = true;
     tramo = 0;
     break;
@@ -502,35 +541,35 @@ void checkTurn() {
   switch ((tramo+1) * turnSense)
   {
   case -1:
-    if (yPosition >= 2750) turn();
+    if (yPosition >= 2700) turn();
     break;
   
   case -2:
-    if (xPosition >= 2750) turn();
+    if (xPosition >= 2700) turn();
     break;
 
   case -3:
-    if (yPosition <= 250) turn();
+    if (yPosition <= 300) turn();
     break;
 
   case -4:
-    if (xPosition <= 250) turn();
+    if (xPosition <= 300) turn();
     break;
 
   case 1:
-    if (yPosition >= 2750) turn();
+    if (yPosition >= 2700) turn();
     break;
   
   case 2:
-    if (xPosition <= 250) turn();
+    if (xPosition <= 300) turn();
     break;
 
   case 3:
-    if (yPosition <= 250) turn();
+    if (yPosition <= 300) turn();
     break;
 
   case 4:
-    if (xPosition >= 2750) turn();
+    if (xPosition >= 2700) turn();
     break;
   }
 }
