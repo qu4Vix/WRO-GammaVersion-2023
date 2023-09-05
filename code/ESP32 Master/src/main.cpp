@@ -154,7 +154,7 @@ void setup() {
   digitalWrite(pinLED_rojo, LOW);
   // start motor rotating at max allowed speed
   analogWrite(pinLIDAR_motor, 255);
-  delay(500);
+  delay(2000);
 
   while (readDistance(0) == 0)
   {
@@ -162,6 +162,7 @@ void setup() {
   }
   setYcoord(readDistance(0));
   lidar0=readDistance(0);
+  digitalWrite(pinLED_batVerde, HIGH);
 
   /*
   digitalWrite(pinLED_verde, HIGH);
@@ -259,7 +260,7 @@ void loop() {
     long posXLong = xPosition;
     long posYLong = yPosition;
     long posXObjLong = objectivePosition;
-    long posYObjLong = turnSense;
+    long posYObjLong = (turnSense==-1)?1:(turnSense==1)?2:0;
     long anguloLong = mimpu.GetAngle();
     long anguloObjLong = objectiveDirection;
     enviarDato((byte*)&posXLong,sizeof(posXLong));
@@ -384,58 +385,46 @@ uint16_t getIndex(float angle) {
 
 // Angle from 0 to 359
 uint16_t readDistance(uint16_t angle) {
+  uint16_t i;
   if (angle == 0)
   {
-    int16_t i = 0;
-    int16_t pi = 0;
-    uint8_t ni = 0;
-    uint16_t nuevas[3];
-    while(i<10){
-      if (i == 360)
-      {
-        i = 0;
-      }
-      
-      if (distances[350+i] == 0)
-      {
-        i++;
-      }
-      if (distancesMillis[350+i] < distancesMillis[350+pi])
-      {
-        pi = i;
-        nuevas[ni] = i;
-        ni++;
-      }
-      i++;
-    }
-    if ((nuevas[1]-nuevas[0]) < 100 or (nuevas[1]-nuevas[2]) < 100)
+    i = 355;
+  }
+  else i = angle-5;
+  uint8_t pi;
+  uint8_t ni = 0;
+  uint8_t nuevas[4];
+  while(i<10){
+    if (i == 360)
     {
-      return distances[pi];
+      i = 0;
+    }
+    
+    if (distances[i] == 0)
+    {
+    }
+    else if ((millis()-distancesMillis[i]) < 2000)
+    {
+      nuevas[ni] = i;
+      ni++;
+      if(ni==4) ni=0;
+    }
+    i++;
+
+    if (ni == 3)
+    {
+      pi=0;
+      while (pi < 3)
+      {
+        if (abs(distances[nuevas[pi]]-distances[nuevas[pi+1]]) < 50)
+        {
+          return distances[nuevas[pi]];
+        }
+        else {pi++;}
+      }
     }
   }
-  else{
-    int16_t i = -5;
-    int16_t pi = -5;
-    uint8_t ni = 0;
-    uint16_t nuevas[3];
-    while(i<10){
-      if (distances[angle+i] == 0)
-      {
-        i++;
-      }
-      if (distancesMillis[angle+i] < distancesMillis[angle+pi] && (millis()-distancesMillis[i]) < 500)
-      {
-        pi = i;
-        nuevas[ni] = i;
-        ni++;
-      }
-      i++;
-    }
-    if ((nuevas[1]-nuevas[0]) < 100 or (nuevas[1]-nuevas[2]) < 100)
-    {
-      return distances[pi];
-    }
-  }
+  return 4000;
 }
 
 // Create code for the task which manages the lidar
