@@ -124,7 +124,7 @@ void receiveData() {
   {
     uint8_t _angleByte;
     commSerial.readBytes(&_angleByte, 1);
-    int _angle = map(_angleByte, 0, 180, -90, 90);
+    int _angle = _angleByte - 90;
     miservo.MoveServo(_angle);
   }
 }

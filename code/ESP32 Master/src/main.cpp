@@ -23,7 +23,7 @@ TelemetryManager telemetry(receiversIP, receiversPort);
 // Servo and direction variables
 
 #define servoKP 2.5
-#define servoKD 10
+#define servoKD 0
 int prev_setAngle;
 int actual_directionError;
 int prev_directionError;
@@ -186,12 +186,12 @@ void setup() {
   // wait until y coordinate is calculated
   while (readDistance(0) == 0)
   {
-    digitalWrite(pinLED_batAmarillo, HIGH);
+    digitalWrite(pinLED_rojo, HIGH);
   }
-  digitalWrite(pinLED_batAmarillo, LOW);
-  digitalWrite(pinLED_batVerde, HIGH);
+  digitalWrite(pinLED_rojo, LOW);
+  digitalWrite(pinLED_verde, HIGH);
   setYcoord(readDistance(0));
-  digitalWrite(pinLED_batVerde, HIGH);
+  digitalWrite(pinLED_verde, HIGH);
 
   /*
   digitalWrite(pinLED_verde, HIGH);
@@ -369,16 +369,16 @@ int directionError(int bearing, int target) {
 }
 
 void setSpeed(int speed) {
-  commSerial.write(1);
   speed = constrain(speed, -100, 100);
   uint8_t _speed = (abs(speed) << 1) | ((speed >= 0) ? 0 : 1);
+  commSerial.write(1);
   commSerial.write(_speed);
 }
 
 void setSteering(int angle) {
-  commSerial.write(2);
   angle = constrain(angle, -90, 90);
-  uint8_t _angle = map(angle, -90, 90, 0, 180);
+  uint8_t _angle = angle + 90;
+  commSerial.write(2);
   commSerial.write(_angle);
 }
 
