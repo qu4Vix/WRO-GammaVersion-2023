@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <AdvancedMPU.h>
 #include <RPLidar.h>
+#include <Pixy2.h>
 #include "credentials.h"
 #include "pinAssignments.h"
 
@@ -33,6 +34,9 @@ float objectiveDirection;
 uint8_t bateria;
 
 // camera signatures
+
+#define GreenSignature 1
+#define RedSignature 2
 
 bool firma1Detectada = true;
 uint8_t firma1X = 18;
@@ -96,6 +100,7 @@ RPLidar lidar;
 HardwareSerial commSerial(1);
 TaskHandle_t Task1;
 HardwareSerial teleSerial(0);
+Pixy2 pixy;
 
 // calculate the error in the direction
 int directionError(int bearing, int target);
@@ -153,6 +158,9 @@ void setup() {
     telemetry.StartUDP(udpPort);
   #endif
   
+  // Initializate the pixy camera
+  pixy.init();
+
   // configure the mpu
   mimpu.BeginWire(pinMPU_SDA, pinMPU_SCL, 400000);
   mimpu.Setup();
