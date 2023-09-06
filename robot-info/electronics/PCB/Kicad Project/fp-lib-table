@@ -1,0 +1,12 @@
+(fp_lib_table
+  (lib (name "esp32_devkit_v1_doit")(type "KiCad")(uri "E:/Descargas/kicad-master/footprints/esp32_devkit_v1_doit.pretty")(options "")(descr ""))
+  (lib (name "ESP32-DEVKITV1")(type "Eagle")(uri "E:/Descargas/ESP32-DEVKITV1-master/ESP32-DEVKITV1.lbr")(options "")(descr ""))
+  (lib (name "TB6612FNG")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias/TB6612FNG.pretty")(options "")(descr ""))
+  (lib (name "MPU-92-65")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias/MPU-92-65.pretty")(options "")(descr ""))
+  (lib (name "SOT-223")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias/SOT-223.pretty")(options "")(descr ""))
+  (lib (name "Otros")(type "KiCad")(uri "${KIPRJMOD}/Otros.pretty")(options "")(descr ""))
+  (lib (name "ESP32")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias/ESP32.pretty")(options "")(descr ""))
+  (lib (name "XT60-M")(type "KiCad")(uri "E:/Descargas/XT60-M")(options "")(descr ""))
+  (lib (name "Librerias")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias")(options "")(descr ""))
+  (lib (name "Librerias2")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias")(options "")(descr ""))
+)

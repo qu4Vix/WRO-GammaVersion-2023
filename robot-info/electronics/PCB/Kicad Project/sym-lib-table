@@ -1,0 +1,12 @@
+(sym_lib_table
+  (lib (name "esp32_devkit_v1_doit")(type "Legacy")(uri "E:/Descargas/kicad-master/symbols/esp32_devkit_v1_doit.lib")(options "")(descr ""))
+  (lib (name "aht10_breakout")(type "Legacy")(uri "E:/Descargas/kicad-master/symbols/aht10_breakout.lib")(options "")(descr ""))
+  (lib (name "am312_breakout")(type "Legacy")(uri "E:/Descargas/kicad-master/symbols/am312_breakout.lib")(options "")(descr ""))
+  (lib (name "TB6612FNG")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias/TB6612FNG.kicad_sym")(options "")(descr ""))
+  (lib (name "MPU-92-65")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias/MPU-92-65.kicad_sym")(options "")(descr ""))
+  (lib (name "1210")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias/1210.kicad_sym")(options "")(descr ""))
+  (lib (name "ESP32-DEVKITC-32D")(type "Legacy")(uri "E:/Descargas/ESP32-DEVKITC-32D(1)/ESP32-DEVKITC-32D.lib")(options "")(descr ""))
+  (lib (name "ESP-32")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias/ESP-32.kicad_sym")(options "")(descr ""))
+  (lib (name "Otros")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias/Otros.kicad_sym")(options "")(descr ""))
+  (lib (name "Logo")(type "KiCad")(uri "E:/Proyectos/WRO...2023/Electronica/Librerias/Logo.kicad_sym")(options "")(descr ""))
+)
