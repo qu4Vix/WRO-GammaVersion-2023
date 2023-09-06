@@ -23,6 +23,10 @@
 // Button pin
 #define pinBoton 33
 
+// Telemetry serial pins
+#define telemetriaTX 19
+#define telemetriaRX 23
+
 // Pin Modes
 void setPinModes() {
     pinMode(pinBoton, INPUT_PULLUP);

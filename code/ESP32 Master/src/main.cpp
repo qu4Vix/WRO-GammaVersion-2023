@@ -4,10 +4,8 @@
 #include "credentials.h"
 #include "pinAssignments.h"
 
+// Enables wifi functions when true
 #define ENABLE_WIFI false
-
-#define telemetriaTX 19
-#define telemetriaRX 23
 
 #if ENABLE_WIFI == true
 #include <OTAUpdate.h>
@@ -22,6 +20,8 @@ Updater miota(otaPort);
 TelemetryManager telemetry(receiversIP, receiversPort);
 #endif
 
+// Servo and direction variables
+
 #define servoKP 2.5
 #define servoKD 10
 int prev_setAngle;
@@ -29,7 +29,10 @@ int actual_directionError;
 int prev_directionError;
 float objectiveDirection;
 
+// battery level variable
 uint8_t bateria;
+
+// camera signatures
 
 bool firma1Detectada = true;
 uint8_t firma1X = 18;
@@ -38,8 +41,10 @@ bool firma2Detectada = true;
 uint8_t firma2X = 20;
 uint8_t firma2Y = 21;
 
+// conversion between mm and encoder counts
 #define MMperEncoder 1.41
 
+// List of possible states for the car
 enum e {
   Inicio,
   Recto,
@@ -50,24 +55,30 @@ enum e {
 };
 uint8_t estado = e::Inicio;
 
+// journey variables
+
 uint8_t giros = 1;
 uint8_t tramo = 0;
 int8_t turnSense = 0;
 
+// encoder variables
+
 uint32_t encoderMeasurement;
 uint32_t prev_encoderMeasurement;
 
-uint32_t prev_ms_tele = 0;
-
-float lidarAngle;
-uint16_t distancesArray[2][360];
-volatile bool arrayLecture = false;
+// lidar measurement variables
 
 uint16_t distances[360];
 static uint16_t distancesMillis[360];
 
+// car position on the map (origin at the bottom-left corner)
+
+// x position of the car (increases to the right)
 double xPosition = 0;
+// y position of the car (increases upwards)
 double yPosition = 0;
+
+// position PID controller variables
 
 #define positionKP 0.1
 #define positionKD 1
@@ -77,7 +88,7 @@ int prev_positionError;
 bool fixXposition = true;
 bool fixInverted = true;
 
-int lidar0;
+// object declarations
 
 MPU mimpu;
 HardwareSerial lidarSerial(2);
@@ -86,23 +97,36 @@ HardwareSerial commSerial(1);
 TaskHandle_t Task1;
 HardwareSerial teleSerial(0);
 
+// calculate the error in the direction
 int directionError(int bearing, int target);
 
+// esp32 intercommunication functions
+
+// set the car's speed
 void setSpeed(int speed);
+// set the angle of the servo
 void setSteering(int angle);
+// receive data from the serial
 void receiveData();
+// turn a led on depending on the tension received
 void manageTension(uint8_t tension);
 
+// LIDAR management variables
+
+// get the index in the distances array for an angle given
 uint16_t getIndex(float angle);
 // Angle from 0 to 359
 uint16_t readDistance(uint16_t angle);
-// Create code for task1
+// Create code for the task which manages the LIDAR
 void LidarTaskCode(void * pvParameters);
 
+// send a piece of data to the telemetry esp32
 void enviarDato(byte* pointer, int8_t size);
 
-void iteratePosition();
-void turn();        // turn
+// functions for the management of the car's position
+
+void iteratePositionPID();  // invoke an iteration of the pid controller for the position
+void turn();            // turn
 void setXcoord(uint16_t i);   // set the coordinate x axis
 void setYcoord(uint16_t f);   // set the coordinate y axis
 void decideTurn();  // detect the sense of turn
@@ -110,12 +134,16 @@ void checkTurn();   // check wether you have to turn or not
 
 void setup() {
   // put your setup code here, to run once:
+
+  // begin serial
   Serial.begin(115200);
+  // begin telemetry serial
   teleSerial.begin(1000000, SERIAL_8N1, telemetriaRX, telemetriaTX);
-
-  setPinModes();
-
+  // begin esp32 intercommunication serial
   commSerial.begin(1000000, SERIAL_8N1, pinRX, pinTX);
+
+  // set all the pin modes
+  setPinModes();
 
   #if ENABLE_WIFI == true
     miota.WiFiInit();
@@ -123,24 +151,24 @@ void setup() {
     miota.OTAInit();
 
     telemetry.StartUDP(udpPort);
-    digitalWrite(pinLED_rojo, HIGH);
   #endif
   
+  // configure the mpu
   mimpu.BeginWire(pinMPU_SDA, pinMPU_SCL, 400000);
   mimpu.Setup();
   mimpu.WorkOffset();
 
+  // begin the lidar
   lidar.begin(lidarSerial);
   rplidar_response_device_info_t info;
   while (!IS_OK(lidar.getDeviceInfo(info, 100))) delay(500);
   rplidar_response_device_health_t health;
   lidar.getHealth(health);
-  //Serial.println("info: " + String(health.status) +", " + String(health.error_code));
-
+  Serial.println("info: " + String(health.status) +", " + String(health.error_code));
   // detected...
   lidar.startScan();
 
-  // Asign task 1 to core 0
+  // Asign lidar Task to core 0
   xTaskCreatePinnedToCore(
     LidarTaskCode,
     "Task1",
@@ -150,11 +178,12 @@ void setup() {
     &Task1,
     0);
   delay(500);
-  digitalWrite(pinLED_rojo, LOW);
-  // start motor rotating at max allowed speed
+
+  // start lidar's motor rotating at max allowed speed
   analogWrite(pinLIDAR_motor, 255);
   delay(500);
 
+  // wait until y coordinate is calculated
   while (readDistance(0) == 0)
   {
     digitalWrite(pinLED_batAmarillo, HIGH);
@@ -162,7 +191,6 @@ void setup() {
   digitalWrite(pinLED_batAmarillo, LOW);
   digitalWrite(pinLED_batVerde, HIGH);
   setYcoord(readDistance(0));
-  lidar0=readDistance(0);
   digitalWrite(pinLED_batVerde, HIGH);
 
   /*
@@ -176,32 +204,40 @@ void setup() {
   digitalWrite(pinLED_verde, LOW);*/
   delay(500);
 
+  // start driving (set a speed to the car and initialize the mpu)
   setSpeed(5);
   mimpu.measureFirstMillis();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  // receive data from the intercommunication serial
   while (commSerial.available())
   {
     receiveData();
   }
 
+  // update mpu's angle
   mimpu.UpdateAngle();
 
+  // repeat position functions every 32ms
   static uint32_t prev_ms_position = millis();
   if (millis() > prev_ms_position) {
     if (encoderMeasurement != prev_encoderMeasurement) {
+      // calculate the increment in position and add it
       double dy = (encoderMeasurement - prev_encoderMeasurement) * cos(mimpu.GetAngle() * (M_PI/180)) * MMperEncoder;
       double dx = (encoderMeasurement - prev_encoderMeasurement) * sin(mimpu.GetAngle() * (M_PI/180)) * MMperEncoder;
       prev_encoderMeasurement = encoderMeasurement;
       xPosition -= dx; // x -> + derecha - izquierda
       yPosition += dy;
-      iteratePosition();
+      iteratePositionPID();
     }
     prev_ms_position = millis() + 32;
   }
 
+  // send telemetry every 100ms
+  static uint32_t prev_ms_tele = millis();
   if (millis() > prev_ms_tele+100)
   {
 
@@ -283,12 +319,14 @@ void loop() {
     prev_ms_tele = millis();
   }
 
+  // check turn every 50ms
   static uint32_t prev_ms_turn = millis();
   if (millis() > prev_ms_turn) {
     checkTurn();
     prev_ms_turn = millis() + 50;
   }
 
+  // repeat direction pid iterations every 20ms
   static uint32_t prev_ms_direction = millis();
   if (millis() > prev_ms_direction) {
     actual_directionError = constrain(directionError(mimpu.GetAngle(), objectiveDirection), -127, 127);
@@ -301,6 +339,7 @@ void loop() {
     prev_ms_direction = millis() + 20;
   }
 
+  // state machine
   switch (estado)
   {
   case e::Inicio:
@@ -445,7 +484,7 @@ void LidarTaskCode(void * pvParameters) {
   }
 }
 
-void iteratePosition() {
+void iteratePositionPID() {
   prev_positionError = positionError;
   if (fixXposition) {
     positionError = directionError(xPosition, objectivePosition);
