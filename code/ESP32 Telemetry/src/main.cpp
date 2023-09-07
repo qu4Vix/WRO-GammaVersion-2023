@@ -2,6 +2,7 @@
 #include <HardwareSerial.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include "credentials.h"
 
 #define inputBufferSize 1000
 #define timeout 100
@@ -10,7 +11,7 @@ HardwareSerial SerialTelem(1);
 void connectToWiFi(const char * ssid, const char * pwd);
 void WiFiEvent(WiFiEvent_t event);
 
-const char * udpAddress = "192.168.144.235";
+const char * udpAddress = "192.168.1.132";
 const int udpPort = 5005;
 
 //Are we currently connected?
@@ -40,9 +41,9 @@ void receiveData();
 void setup(){
   pinMode(LED_BUILTIN,OUTPUT);
   Serial.begin(1000000);
-  SerialTelem.begin(1000000,SERIAL_8N1,5,6); //Rx = 5, Tx = 6
+  SerialTelem.begin(1000000, SERIAL_8N1, 5, 6); //Rx = 5, Tx = 6
 
-  connectToWiFi("DiverBOT_Invitados", "bucleinfinito");
+  connectToWiFi(ssid, password);
   timeStart = millis();
   posBuffer = 0;
   posTele = 0;
