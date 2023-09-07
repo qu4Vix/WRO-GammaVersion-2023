@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include <AdvancedMPU.h>
 #include <RPLidar.h>
-#include <Pixy2.h>
-#include "credentials.h"
+//#include "credentials.h"
 #include "pinAssignments.h"
 
 // Enables wifi functions when true
@@ -100,7 +99,6 @@ RPLidar lidar;
 HardwareSerial commSerial(1);
 TaskHandle_t Task1;
 HardwareSerial teleSerial(0);
-Pixy2 pixy;
 
 // calculate the error in the direction
 int directionError(int bearing, int target);
@@ -141,7 +139,7 @@ void setup() {
   // put your setup code here, to run once:
 
   // begin serial
-  Serial.begin(115200);
+  //Serial.begin(115200);
   // begin telemetry serial
   teleSerial.begin(1000000, SERIAL_8N1, telemetriaRX, telemetriaTX);
   // begin esp32 intercommunication serial
@@ -157,9 +155,6 @@ void setup() {
 
     telemetry.StartUDP(udpPort);
   #endif
-  
-  // Initializate the pixy camera
-  pixy.init();
 
   // configure the mpu
   mimpu.BeginWire(pinMPU_SDA, pinMPU_SCL, 400000);
@@ -194,9 +189,9 @@ void setup() {
   // wait until y coordinate is calculated
   while (readDistance(0) == 0)
   {
-    digitalWrite(pinLED_rojo, HIGH);
+    digitalWrite(pinLED_batRojo, HIGH);
   }
-  digitalWrite(pinLED_rojo, LOW);
+  digitalWrite(pinLED_batRojo, LOW);
   digitalWrite(pinLED_verde, HIGH);
   setYcoord(readDistance(0));
   digitalWrite(pinLED_verde, HIGH);
@@ -393,18 +388,31 @@ void setSteering(int angle) {
 void receiveData() {
   uint8_t firstByte;
   commSerial.readBytes(&firstByte, 1);
-  if (firstByte == 7) {
+  if (firstByte == 7) { //Encoder data
     uint8_t bytes[4];
     commSerial.readBytes(bytes, 4);
     encoderMeasurement = 0;
     for (uint8_t iteration; iteration < 4; iteration++) {
       encoderMeasurement = encoderMeasurement | bytes[iteration] << (8*iteration);
     }
-  } else if (firstByte == 6) {
+  } else if (firstByte == 6) { //Batery voltage
     uint8_t tensionValue;
     commSerial.readBytes(&tensionValue, 1);
     bateria = tensionValue;
     manageTension(tensionValue);
+  }
+  else if(firstByte == 5){ //Camera data
+    uint8_t Signature;
+    uint8_t SignatureX;
+    uint8_t SignatureY;
+    commSerial.readBytes(&Signature, 1);
+    commSerial.readBytes(&SignatureX, 1);
+    commSerial.readBytes(&SignatureY, 1);
+    firma1Detectada = firma2Detectada = 0;
+    firma1Detectada = (Signature==1);
+    firma2Detectada = (Signature==2);
+    firma1X = SignatureX;
+    firma1Y = SignatureY;
   }
 }
 
@@ -475,8 +483,18 @@ void LidarTaskCode(void * pvParameters) {
       float angle    = lidar.getCurrentPoint().angle; //angle value in degrees
 
       // obtain the index associated with the angle and store in the array
-      uint16_t index = getIndex(angle);
 
+      float angulo = angle - mimpu.GetAngle();
+      if (angulo < 0)
+      {
+        angulo = 360 + angulo;
+      }
+      else if (angulo > 360)
+      {
+        angulo -= 360;
+      }
+      uint16_t index = getIndex(angulo);
+      
       if (distance > 100 && distance < 3000)
       { 
         //bool  startBit = lidar.getCurrentPoint().startBit; //whether this point belongs to a new scan
