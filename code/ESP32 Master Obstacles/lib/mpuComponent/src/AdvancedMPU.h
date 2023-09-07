@@ -21,15 +21,15 @@ class MPU {
     void Setup();   // Set up the mpu 9265 with default settings in wire1
     void WorkOffset();  // Work out the offset of the mpu
     void UpdateAngle(); // Update the angle (Call in the loop)
-    float GetAngle();   // Returns the angle
+    double GetAngle();   // Returns the angle
     void measureFirstMillis();
 
     private:
     MPU9250 _mpu;   // MPU object
     byte _pinSDA;
     byte _pinSCL;
-    float _offset;
-    float _angle;
+    double _offset;
+    double _angle;
     uint32_t _prev_ms_angle;
     bool _firstMillisRead;
 };

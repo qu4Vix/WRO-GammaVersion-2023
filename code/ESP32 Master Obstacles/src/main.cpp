@@ -6,6 +6,7 @@
 
 // Enables wifi functions when true
 #define ENABLE_WIFI false
+#define ENABLE_TELEMETRY false
 
 #if ENABLE_WIFI == true
 #include <OTAUpdate.h>
@@ -58,10 +59,22 @@ enum e {
 };
 uint8_t estado = e::Inicio;
 
+// track constants
+
+// size of the map (mm)
+#define mapSize 3000
+// coordinate of the central lane (mm)
+#define trackPath 2500
+// distance to path on which the car should try to turn (mm)
+#define turnOffset 300
+
 // journey variables
 
+// number of turns
 uint8_t giros = 1;
+// section in which the car is
 uint8_t tramo = 0;
+// sense of turn
 int8_t turnSense = 0;
 
 // encoder variables
@@ -83,13 +96,17 @@ double yPosition = 0;
 
 // position PID controller variables
 
-#define positionKP 0.1
+#define positionKP 0.4
 #define positionKD 1
 int objectivePosition = 0;
-int positionError;
-int prev_positionError;
+float positionError;
+float prev_positionError;
 bool fixXposition = true;
 bool fixInverted = true;
+
+// trajectory management variables
+
+uint8_t tramos[8];
 
 // object declarations
 
@@ -102,6 +119,7 @@ HardwareSerial teleSerial(0);
 
 // calculate the error in the direction
 int directionError(int bearing, int target);
+float directionError(double bearing, int target);
 
 // esp32 intercommunication functions
 
@@ -135,13 +153,15 @@ void setYcoord(uint16_t f);   // set the coordinate y axis
 void decideTurn();  // detect the sense of turn
 void checkTurn();   // check wether you have to turn or not
 
+void changeLane(uint16_t objective);
+
 void setup() {
   // put your setup code here, to run once:
 
   // begin serial
-  //Serial.begin(115200);
+  Serial.begin(115200);
   // begin telemetry serial
-  teleSerial.begin(1000000, SERIAL_8N1, telemetriaRX, telemetriaTX);
+  //teleSerial.begin(1000000, SERIAL_8N1, telemetriaRX, telemetriaTX);
   // begin esp32 intercommunication serial
   commSerial.begin(1000000, SERIAL_8N1, pinRX, pinTX);
 
@@ -208,7 +228,7 @@ void setup() {
   delay(500);
 
   // start driving (set a speed to the car and initialize the mpu)
-  //setSpeed(5);
+  setSpeed(5);
   mimpu.measureFirstMillis();
 }
 
@@ -226,7 +246,7 @@ void loop() {
 
   // repeat position functions every 32ms
   static uint32_t prev_ms_position = millis();
-  if (millis() > prev_ms_position) {
+  if (millis() >= prev_ms_position) {
     if (encoderMeasurement != prev_encoderMeasurement) {
       // calculate the increment in position and add it
       double dy = (encoderMeasurement - prev_encoderMeasurement) * cos(mimpu.GetAngle() * (M_PI/180)) * MMperEncoder;
@@ -234,11 +254,12 @@ void loop() {
       prev_encoderMeasurement = encoderMeasurement;
       xPosition -= dx; // x -> + derecha - izquierda
       yPosition += dy;
-      iteratePositionPID();
     }
+    iteratePositionPID();
     prev_ms_position = millis() + 32;
   }
 
+#if ENABLE_TELEMETRY == true
   // send telemetry every 100ms
   static uint32_t prev_ms_tele = millis();
   if (millis() > prev_ms_tele+100)
@@ -321,6 +342,7 @@ void loop() {
 
     prev_ms_tele = millis();
   }
+  #endif
 
   // check turn every 50ms
   static uint32_t prev_ms_turn = millis();
@@ -346,7 +368,7 @@ void loop() {
   switch (estado)
   {
   case e::Inicio:
-    if (yPosition >= 2500) {
+    if (yPosition >= 2100) {
       decideTurn();
       setXcoord(readDistance(270));
       objectivePosition = xPosition;
@@ -368,6 +390,11 @@ void loop() {
 
 int directionError(int bearing, int target) {
   int error = target - bearing;
+  return error;
+}
+
+float directionError(double bearing, int target) {
+  float error = target - bearing;
   return error;
 }
 
@@ -526,56 +553,55 @@ void turn() {
   switch ((tramo+1) * turnSense)
   {
   case -1:
-    objectivePosition = 2700;
+    objectivePosition = trackPath;
     fixInverted = false;
     tramo = 1;
     break;
   
   case -2:
-    objectivePosition = 2700;
+    objectivePosition = trackPath;
     fixInverted = false;
     tramo = 2;
     break;
 
   case -3:
-    objectivePosition = 300;
+    objectivePosition = mapSize - trackPath;
     fixInverted = true;
     tramo = 3;
     break;
 
   case -4:
-    objectivePosition = 300;
+    objectivePosition = mapSize - trackPath;
     fixInverted = true;
     tramo = 0;
     break;
   
-  case 1:
-    objectivePosition = 2700;
+  case 2:
+    objectivePosition = trackPath;
     fixInverted = true;
-    tramo = 1;
+    tramo++;
     break;
   
-  case 2:
-    objectivePosition = 400;
-    fixInverted = false;
-    tramo = 2;
-    break;
-
-  case 3:
-    objectivePosition = 400;
-    fixInverted = false;
-    tramo = 3;
-    break;
-
   case 4:
-    objectivePosition = 2700;
+    objectivePosition = mapSize - trackPath;
+    fixInverted = false;
+    tramo++;
+    break;
+
+  case 6:
+    objectivePosition = mapSize - trackPath;
+    fixInverted = false;
+    tramo++;
+    break;
+
+  case 8:
+    objectivePosition = trackPath;
     fixInverted = true;
     tramo = 0;
     break;
   }
   giros++;
   fixXposition = !fixXposition;
-  firma1Detectada = fixXposition;
 }
 
 void setXcoord(uint16_t i) {
@@ -583,42 +609,58 @@ void setXcoord(uint16_t i) {
 }
 
 void setYcoord(uint16_t f) {
-  yPosition = 3000 - f - 150;
+  yPosition = mapSize - 150 - f;
 }
 
 void checkTurn() {
   switch ((tramo+1) * turnSense)
   {
   case -1:
-    if (yPosition >= 2700 - 200) turn();
+    if (yPosition >= trackPath - turnOffset) turn();
     break;
   
   case -2:
-    if (xPosition >= 2700 - 200) turn();
+    if (xPosition >= trackPath - turnOffset) turn();
     break;
 
   case -3:
-    if (yPosition <= 300 + 200) turn();
+    if (yPosition <= mapSize - trackPath + turnOffset) turn();
     break;
 
   case -4:
-    if (xPosition <= 300 + 300) turn();
+    if (xPosition <= mapSize - trackPath + turnOffset) turn();
     break;
 
   case 1:
-    if (yPosition >= 2700 - 300) turn();
+    if (yPosition >= mapSize / 2 - turnOffset) changeLane((giros!=1)*2500);
     break;
   
   case 2:
-    if (xPosition <= 300 + 300) turn();
+    if (yPosition >= trackPath - turnOffset) turn();
     break;
 
   case 3:
-    if (yPosition <= 300 + 300) turn();
+    if (xPosition <= mapSize / 2) changeLane(2850);
     break;
 
   case 4:
-    if (xPosition >= 2700 - 300) turn();
+    if (xPosition <= mapSize - trackPath + turnOffset) turn();
+    break;
+  
+  case 5:
+    if (yPosition <= mapSize / 2) changeLane(850);
+    break;
+  
+  case 6:
+    if (yPosition <= mapSize - trackPath + turnOffset) turn();
+    break;
+
+  case 7:
+    if (xPosition >= mapSize / 2) changeLane(850);
+    break;
+
+  case 8:
+    if (xPosition >= trackPath - turnOffset) turn();
     break;
   }
 }
@@ -633,6 +675,11 @@ void decideTurn(){
     turnSense = 1;
   }
   else turnSense = 0;
+}
+
+void changeLane(uint16_t objective) {
+  objectivePosition = objective;
+  tramo++;
 }
 
 void enviarDato(byte* pointer, int8_t size){

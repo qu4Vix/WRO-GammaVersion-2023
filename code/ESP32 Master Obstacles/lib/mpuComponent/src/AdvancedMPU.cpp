@@ -43,8 +43,8 @@ void MPU::Setup() {
 }
 
 void MPU::WorkOffset() {
-    int num = 0;
-    float tot = 0;
+    uint16_t num = 0;
+    double tot = 0;
     while (num < 1000) {
         if (_mpu.update()) {
             num++;
@@ -58,21 +58,21 @@ void MPU::WorkOffset() {
 
 void MPU::UpdateAngle() {
     if (_mpu.update()) {
-        unsigned long sampleDuration = millis() - _prev_ms_angle;
+        unsigned long sampleDuration = micros() - _prev_ms_angle;
         float gyroZ = _mpu.getGyroZ();
-        _prev_ms_angle = millis();
-        _angle += ((gyroZ - _offset) * sampleDuration / 1000);
+        _prev_ms_angle = micros();
+        _angle += ((gyroZ - _offset) * sampleDuration / 1000000);
         //Serial.println(_angle);
     }
 }
 
-float MPU::GetAngle() {
+double MPU::GetAngle() {
     return _angle;
 }
 
 void MPU::measureFirstMillis() {
     if (!_firstMillisRead) {
-        _prev_ms_angle = millis();
+        _prev_ms_angle = micros();
         _firstMillisRead = true;
     }
 }
