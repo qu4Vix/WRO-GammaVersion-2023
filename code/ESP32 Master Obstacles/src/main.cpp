@@ -6,7 +6,7 @@
 
 // Enables wifi functions when true
 #define ENABLE_WIFI false
-#define ENABLE_TELEMETRY false
+#define ENABLE_TELEMETRY true
 
 #if ENABLE_WIFI == true
 #include <OTAUpdate.h>
@@ -96,7 +96,7 @@ double yPosition = 0;
 
 // position PID controller variables
 
-#define positionKP 0.4
+#define positionKP 0.3
 #define positionKD 1
 int objectivePosition = 0;
 float positionError;
@@ -106,7 +106,7 @@ bool fixInverted = true;
 
 // trajectory management variables
 
-uint8_t tramos[8];
+uint16_t tramos[8] = {2850, 2500, 2500, 2850, 500, 850, 850, 500};
 
 // object declarations
 
@@ -158,10 +158,15 @@ void changeLane(uint16_t objective);
 void setup() {
   // put your setup code here, to run once:
 
+  
+  #if ENABLE_TELEMETRY == true
+  // begin telemetry serial
+  teleSerial.begin(1000000, SERIAL_8N1, telemetriaRX, telemetriaTX);
+  #else
   // begin serial
   Serial.begin(115200);
-  // begin telemetry serial
-  //teleSerial.begin(1000000, SERIAL_8N1, telemetriaRX, telemetriaTX);
+  #endif
+  
   // begin esp32 intercommunication serial
   commSerial.begin(1000000, SERIAL_8N1, pinRX, pinTX);
 
@@ -228,7 +233,7 @@ void setup() {
   delay(500);
 
   // start driving (set a speed to the car and initialize the mpu)
-  setSpeed(5);
+  setSpeed(2);
   mimpu.measureFirstMillis();
 }
 
@@ -373,6 +378,7 @@ void loop() {
       setXcoord(readDistance(270));
       objectivePosition = xPosition;
       estado = e::Recto;
+      setSpeed(7);
     }
   break;
   case e::Recto:
@@ -577,25 +583,25 @@ void turn() {
     break;
   
   case 2:
-    objectivePosition = trackPath;
+    objectivePosition = tramos[2];
     fixInverted = true;
     tramo++;
     break;
   
   case 4:
-    objectivePosition = mapSize - trackPath;
+    objectivePosition = tramos[4];
     fixInverted = false;
     tramo++;
     break;
 
   case 6:
-    objectivePosition = mapSize - trackPath;
+    objectivePosition = tramos[6];
     fixInverted = false;
     tramo++;
     break;
 
   case 8:
-    objectivePosition = trackPath;
+    objectivePosition = tramos[0];
     fixInverted = true;
     tramo = 0;
     break;
@@ -632,7 +638,7 @@ void checkTurn() {
     break;
 
   case 1:
-    if (yPosition >= mapSize / 2 - turnOffset) changeLane((giros!=1)*2500);
+    if (yPosition >= 1400) changeLane((giros==1)?0:2500);
     break;
   
   case 2:
@@ -640,7 +646,7 @@ void checkTurn() {
     break;
 
   case 3:
-    if (xPosition <= mapSize / 2) changeLane(2850);
+    if (xPosition <= 1600) changeLane(tramos[3]);
     break;
 
   case 4:
@@ -648,7 +654,7 @@ void checkTurn() {
     break;
   
   case 5:
-    if (yPosition <= mapSize / 2) changeLane(850);
+    if (yPosition <= 1600) changeLane(tramos[5]);
     break;
   
   case 6:
@@ -656,7 +662,7 @@ void checkTurn() {
     break;
 
   case 7:
-    if (xPosition >= mapSize / 2) changeLane(850);
+    if (xPosition >= 1400) changeLane(tramos[7]);
     break;
 
   case 8:
