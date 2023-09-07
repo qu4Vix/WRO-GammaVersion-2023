@@ -106,7 +106,7 @@ bool fixInverted = true;
 
 // trajectory management variables
 
-uint16_t tramos[8] = {2850, 2500, 2500, 2850, 500, 850, 850, 850};
+uint16_t tramos[8] = {2500, 2500, 2500, 2500, 500, 500, 500, 500};
 
 // object declarations
 
@@ -154,6 +154,7 @@ void decideTurn();  // detect the sense of turn
 void checkTurn();   // check wether you have to turn or not
 
 void changeLane(uint16_t objective);
+bool setCoordTramo(uint8_t tramo, uint16_t leftCoord, uint16_t rightCoord);
 
 void setup() {
   // put your setup code here, to run once:
@@ -441,11 +442,14 @@ void receiveData() {
     commSerial.readBytes(&Signature, 1);
     commSerial.readBytes(&SignatureX, 1);
     commSerial.readBytes(&SignatureY, 1);
-    firma1Detectada = firma2Detectada = 0;
-    firma1Detectada = (Signature==1);
-    firma2Detectada = (Signature==2);
-    firma1X = SignatureX;
-    firma1Y = SignatureY;
+    // solo aceptar firmas en la primera vuelta
+    if (giros < 6) {
+      firma1Detectada = firma2Detectada = 0;
+      firma1Detectada = (Signature==1);
+      firma2Detectada = (Signature==2);
+      firma1X = SignatureX;
+      firma1Y = SignatureY;
+    }
   }
 }
 
@@ -639,33 +643,41 @@ void checkTurn() {
 
   case 1:
     if (yPosition >= 1000) changeLane((giros==1)?0:2500);
+    if (setCoordTramo(0, 2150, 2850)) changeLane(tramos[0]);
     break;
   
   case 2:
+    setCoordTramo(1, 2150, 2850);
     if (yPosition >= (giros==1)?2100:2000) turn();
     break;
 
   case 3:
+    if(setCoordTramo(2, 2150, 2850)) changeLane(tramos[2]);
     if (xPosition <= 2000) changeLane(tramos[3]);
     break;
 
   case 4:
+    setCoordTramo(3, 2150, 2850);
     if (xPosition <= 1000) turn();
     break;
   
   case 5:
+    if (setCoordTramo(4, 850, 150)) changeLane(tramos[4]);
     if (yPosition <= 2000) changeLane(tramos[5]);
     break;
   
   case 6:
+    setCoordTramo(5, 850, 150);
     if (yPosition <= 1000) turn();
     break;
 
   case 7:
+    if (setCoordTramo(6, 850, 150)) changeLane(tramos[6]);
     if (xPosition >= 1000) changeLane(tramos[7]);
     break;
 
   case 8:
+    setCoordTramo(7, 850, 150);
     if (xPosition >= 2000) turn();
     break;
   }
@@ -695,4 +707,18 @@ void enviarDato(byte* pointer, int8_t size){
     teleSerial.write(pointer[posicion]);
     posicion--;
   }
+}
+
+bool setCoordTramo(uint8_t _tramo, uint16_t leftCoord, uint16_t rightCoord) {
+  if (firma1Detectada) {
+    tramos[_tramo] = leftCoord;
+    firma1Detectada = false;
+    return true;
+  }
+  if (firma2Detectada) {
+    tramos[_tramo] = rightCoord;
+    firma2Detectada = false;
+    return true;
+  }
+  return false;
 }

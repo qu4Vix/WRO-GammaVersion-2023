@@ -23,7 +23,8 @@ Encoder miencoder(pinEncoder_DT);
 
 #if ROUND_NUMBER == 2
 
-#define TAMANO_MINIMO_ESQUIVE 0
+#define TAMANO_MINIMO_ESQUIVE 20
+#define ALTURA_MINIMA_ESQUIVE 63
 
 Pixy2 pixy;
 #endif
@@ -116,13 +117,15 @@ void loop() {
       int tamano = 0;
       int mayor = -1;
       for (uint8_t index = 0; index < pixy.ccc.numBlocks; index++) {
-        if (pixy.ccc.blocks[index].m_height > tamano) {
+        if (pixy.ccc.blocks[index].m_width > tamano) {
           mayor = index;
-          tamano = pixy.ccc.blocks[index].m_height;
+          tamano = pixy.ccc.blocks[index].m_width;
         }
       }
       if (tamano >= TAMANO_MINIMO_ESQUIVE) {
-        sendCamera(pixy.ccc.blocks[mayor].m_signature, pixy.ccc.blocks[mayor].m_x, pixy.ccc.blocks[mayor].m_y);
+        if (pixy.ccc.blocks[mayor].m_y >= ALTURA_MINIMA_ESQUIVE) {
+          sendCamera(pixy.ccc.blocks[mayor].m_signature, pixy.ccc.blocks[mayor].m_x, pixy.ccc.blocks[mayor].m_y);
+        }
       }
     }
     prev_ms_camera = millis() + 100;
