@@ -2,10 +2,12 @@
 #include <Motor.h>
 #include <CServo.h>
 #include <Encoder.h>
+#include <Pixy2.h>
 #include "credentials.h"
 #include "pinAssignments.h"
 
 #define ENABLE_WIFI fasle
+#define ROUND_NUMBER 2
 
 #if ENABLE_WIFI == true
 #include <OTAUpdate.h>
@@ -18,6 +20,10 @@ HardwareSerial commSerial(1);
 Motor mimotor(pinPWM, pinDir1, pinDir2, pinEn, 2, 1);
 CServo miservo(pinServo);
 Encoder miencoder(pinEncoder_DT);
+
+#if ROUND_NUMBER == 2
+Pixy2 pixy;
+#endif
 
 volatile int speed;
 int objectiveSpeed;
@@ -32,6 +38,10 @@ void actualizarBateria();
 // 8.4V - 3600
 // 8V - 3300
 // 7.6V - 3100
+
+#if ROUND_NUMBER == 2
+void sendCamera(uint8_t signature, uint16_t x, uint16_t y);
+#endif
 
 void setup() {
   // put your setup code here, to run once:
@@ -54,6 +64,10 @@ void setup() {
   timerHandler = timerBegin(0, 80, true);
   timerAttachInterrupt(timerHandler, &onTimer, false);
   timerAlarmWrite(timerHandler, 32000, true);
+
+  #if ROUND_NUMBER == 2
+  pixy.init();
+  #endif
 
   miencoder.Attach(CHANGE);
   mimotor.Init();
@@ -89,6 +103,26 @@ void loop() {
     sendEncoder(miencoder.GetEncoder());
     prev_ms_encoder = millis() + 32;
   }
+
+  #if ROUND_NUMBER == 2
+
+  static uint32_t prev_ms_camera = millis();
+  if (millis() > prev_ms_camera) {
+    pixy.ccc.getBlocks();
+    if (pixy.ccc.numBlocks) {
+      int tamano = 0;
+      int mayor = -1;
+      for (uint8_t index = 0; index < pixy.ccc.numBlocks; index++) {
+        if (pixy.ccc.blocks[index].m_height > tamano) {
+          mayor = index;
+          tamano = pixy.ccc.blocks[index].m_height;
+        }
+      }
+    }
+    sendCamera(pixy.ccc.blocks[0].m_signature, pixy.ccc.blocks[0].m_x, pixy.ccc.blocks[0].m_y);
+    prev_ms_camera = millis() + 100;
+  }
+  #endif
 }
 
 void IRAM_ATTR onTimer() {
@@ -108,6 +142,17 @@ void sendTension(uint8_t batteryLevel) {
   commSerial.write(6);
   commSerial.write(batteryLevel);
 }
+
+#if ROUND_NUMBER == 2
+void sendCamera(uint8_t signature, uint16_t x, uint16_t y) {
+  uint8_t _x = uint8_t(x/2);
+  uint8_t _y = uint8_t(y/2);
+  commSerial.write(5);
+  commSerial.write(signature);
+  commSerial.write(_x);
+  commSerial.write(_y);
+}
+#endif
 
 void receiveData() {
   uint8_t firstByte;
