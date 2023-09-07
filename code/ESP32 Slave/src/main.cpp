@@ -17,11 +17,14 @@ Updater miota(80);
 hw_timer_t* timerHandler;
 
 HardwareSerial commSerial(1);
-Motor mimotor(pinPWM, pinDir1, pinDir2, pinEn, 2, 1);
+Motor mimotor(pinPWM, pinDir1, pinDir2, pinEn, 0.25, 1);
 CServo miservo(pinServo);
 Encoder miencoder(pinEncoder_DT);
 
 #if ROUND_NUMBER == 2
+
+#define TAMANO_MINIMO_ESQUIVE 0
+
 Pixy2 pixy;
 #endif
 
@@ -118,8 +121,10 @@ void loop() {
           tamano = pixy.ccc.blocks[index].m_height;
         }
       }
+      if (tamano >= TAMANO_MINIMO_ESQUIVE) {
+        sendCamera(pixy.ccc.blocks[mayor].m_signature, pixy.ccc.blocks[mayor].m_x, pixy.ccc.blocks[mayor].m_y);
+      }
     }
-    sendCamera(pixy.ccc.blocks[0].m_signature, pixy.ccc.blocks[0].m_x, pixy.ccc.blocks[0].m_y);
     prev_ms_camera = millis() + 100;
   }
   #endif

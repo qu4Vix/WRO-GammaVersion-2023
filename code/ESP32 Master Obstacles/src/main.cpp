@@ -106,7 +106,7 @@ bool fixInverted = true;
 
 // trajectory management variables
 
-uint16_t tramos[8] = {2850, 2500, 2500, 2850, 500, 850, 850, 500};
+uint16_t tramos[8] = {2850, 2500, 2500, 2850, 500, 850, 850, 850};
 
 // object declarations
 
@@ -214,9 +214,9 @@ void setup() {
   // wait until y coordinate is calculated
   while (readDistance(0) == 0)
   {
-    digitalWrite(pinLED_batRojo, HIGH);
+    digitalWrite(pinLED_rojo, HIGH);
   }
-  digitalWrite(pinLED_batRojo, LOW);
+  digitalWrite(pinLED_rojo, LOW);
   digitalWrite(pinLED_verde, HIGH);
   setYcoord(readDistance(0));
   digitalWrite(pinLED_verde, HIGH);
@@ -264,7 +264,7 @@ void loop() {
     prev_ms_position = millis() + 32;
   }
 
-#if ENABLE_TELEMETRY == true
+  #if ENABLE_TELEMETRY == true
   // send telemetry every 100ms
   static uint32_t prev_ms_tele = millis();
   if (millis() > prev_ms_tele+100)
@@ -638,35 +638,35 @@ void checkTurn() {
     break;
 
   case 1:
-    if (yPosition >= 1400) changeLane((giros==1)?0:2500);
+    if (yPosition >= 1000) changeLane((giros==1)?0:2500);
     break;
   
   case 2:
-    if (yPosition >= trackPath - turnOffset) turn();
+    if (yPosition >= (giros==1)?2100:2000) turn();
     break;
 
   case 3:
-    if (xPosition <= 1600) changeLane(tramos[3]);
+    if (xPosition <= 2000) changeLane(tramos[3]);
     break;
 
   case 4:
-    if (xPosition <= mapSize - trackPath + turnOffset) turn();
+    if (xPosition <= 1000) turn();
     break;
   
   case 5:
-    if (yPosition <= 1600) changeLane(tramos[5]);
+    if (yPosition <= 2000) changeLane(tramos[5]);
     break;
   
   case 6:
-    if (yPosition <= mapSize - trackPath + turnOffset) turn();
+    if (yPosition <= 1000) turn();
     break;
 
   case 7:
-    if (xPosition >= 1400) changeLane(tramos[7]);
+    if (xPosition >= 1000) changeLane(tramos[7]);
     break;
 
   case 8:
-    if (xPosition >= trackPath - turnOffset) turn();
+    if (xPosition >= 2000) turn();
     break;
   }
 }
