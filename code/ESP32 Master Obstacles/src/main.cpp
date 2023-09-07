@@ -441,9 +441,9 @@ void receiveData() {
     commSerial.readBytes(&Signature, 1);
     commSerial.readBytes(&SignatureX, 1);
     commSerial.readBytes(&SignatureY, 1);
-    firma1Detectada = firma2Detectada = 0;
-    firma1Detectada = (Signature==1);
-    firma2Detectada = (Signature==2);
+    firma1Detectada = firma2Detectada = false;
+    firma1Detectada = (Signature==GreenSignature); //Verda
+    firma2Detectada = (Signature==RedSignature); //Rojo
     firma1X = SignatureX;
     firma1Y = SignatureY;
   }

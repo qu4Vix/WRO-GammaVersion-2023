@@ -3,7 +3,7 @@
 #include <CServo.h>
 #include <Encoder.h>
 #include <Pixy2.h>
-#include "credentials.h"
+//#include "credentials.h"
 #include "pinAssignments.h"
 
 #define ENABLE_WIFI fasle
