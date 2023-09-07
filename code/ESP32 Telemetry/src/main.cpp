@@ -27,7 +27,36 @@ uint16_t posBuffer;
 uint8_t TeleBuffer[1000];
 uint16_t posTele;
 
-uint16_t DataLenth[5] = {0,1,2,3,720};
+uint16_t DataLenth[6] = {5,10,15,360,720,36};   //Dependiendo del tipo de paquete, éste contendrá cierta cantidad de datos
+                                                //  -0 -> 5 datos     ->NA
+                                                //  -1 -> 10 datos    ->NA
+                                                //  -2 -> 15 datos    ->NA
+                                                //  -3 -> 360 datos   ->Lidar Quality
+                                                //  -4 -> 720 datos   ->Lidar Distances
+                                                //  -5 -> 47 datos    ->Información general
+
+  /* TIPO 5 INFORMACION GENERAL
+            --Posicion x 8 bytes
+            --Posición y 8 bytes
+            --Posición x Objetivo 8 bytes
+            --Posición y Objetivo 8 bytes
+            --Encoder 32 uint32
+            --Estado 8bits  uint
+            --batería 8bits uint
+            --Ángulo 16 float
+            --Angulo Objetivo 16 float
+            --Cámara firma1 Detectada 1 byte
+            --Cámara firma1 x 8 bits
+            --Cámara firma1 y 8 bits
+            --Cámara firma2 Detectada 1byte
+            --Cámara firma2 x 8bits
+            --Cámara firma2 y 8bits
+            
+            |XXXX|YYYY|MMMM|NNNN|QQQQ|W|E|RRRR|TTTT|U|I|O|A|S|D
+             0000 0000 0111 1111 1111 2 2 2222 2222 3 3 3 3 3 3
+             1234 5678 9012 3456 7890 1 2 3456 7890 1 2 3 4 5 6
+            */
+                                                
 
 //Hagamos parpadear el led (un poco)
 void blinkLed(){
@@ -41,7 +70,7 @@ void receiveData();
 void setup(){
   pinMode(LED_BUILTIN,OUTPUT);
   Serial.begin(1000000);
-  SerialTelem.begin(1000000, SERIAL_8N1, 5, 6); //Rx = 5, Tx = 6
+  SerialTelem.begin(1000000,SERIAL_8N1,5,6); //Rx = 5, Tx = 6
 
   connectToWiFi(ssid, password);
   timeStart = millis();
@@ -52,7 +81,7 @@ void setup(){
   Serial.println("Antes");
 
   udp.beginPacket(udpAddress,udpPort);
-  udp.printf("Hola");
+  udp.printf("Conexión establecida");
   udp.endPacket();
 
   Serial.println("Despues");
@@ -110,21 +139,94 @@ enum cab {
   encoders
 };
 
+enum RXState {
+  idle,
+  recibiendoInicioTX,
+  recibiendoTipoPaquete,
+  recibiendoDatos,
+};
+
 void receiveData() {
+  static RXState rxState = RXState::idle;
+  static uint8_t NumPreambulo = 0;
+  static uint16_t posBufferTelem = 0;   //Inicializamos el incide que nos indica la posicion del buffer en la que tenemos que escribir
+  static uint16_t datosPendientesDeRecibir = 0;    //Aqui guardaremos la cantidad de datos que está pendiente de recibir, que dependera del tipo de paquete
+  uint8_t rx = SerialTelem.read();
+  switch (rxState) {
+    case RXState::idle :
+      if(rx == 0xAA){           //Recibido inicio de pqquete
+        rxState = RXState::recibiendoInicioTX;
+        NumPreambulo=1;         //Ya tenemos el primero
+      }
+    break;
+    case RXState::recibiendoInicioTX :
+      if(rx == 0xAA){
+        NumPreambulo++;
+        if(NumPreambulo > 3){   //Hemos recibido ya los 4 0xAA que indican el inicio del paquete
+          rxState = RXState::recibiendoTipoPaquete;
+        }
+      }else{                    //No era un inicio de paquete
+        udp.beginPacket(udpAddress,udpPort);//Como ha fallado algo, vamos a enviar una tráma general en la que indiquemos que algo ha fallado
+        udp.write(5);
+        udp.printf("Se esperaba la cabercera de inicio pero no llego--");
+                  //00000000001111111111222222222233333333334444444444
+                  //01234567890123456789012345678901234567890123456789
+        udp.endPacket();
+        rxState = RXState::idle;
+      }
+    break;
+    case RXState::recibiendoTipoPaquete :
+      if(rx < 6){    //Por ahora unicamente tenemos 5 tipos de paquetes
+        posBufferTelem = 0;
+        TeleBuffer[posBufferTelem] = rx;      //Guardamos el tipo de paquete en el buffer para que esté al inicio de la trama udp que vamos a enviar
+        posBufferTelem++;
+        datosPendientesDeRecibir = DataLenth[rx]; //Dependiendo del tipo de paquete, tendremos que recibir una cantidad de datos
+        rxState = RXState::recibiendoDatos;   //Siguiente estado
+      }else{    //Hemos recibido un tipo de paquete no reconocido, y no sabremos el tamaño, por lo que lo ignoraremos
+        rxState = RXState::idle;
+      }    
+    break;
+    case RXState::recibiendoDatos :
+      datosPendientesDeRecibir--;
+      TeleBuffer[posBufferTelem] = rx;
+      posBufferTelem++;
+      if(datosPendientesDeRecibir == 0){    //Ya hemos recibido todos los datos
+        udp.beginPacket(udpAddress,udpPort);//Enviamos los datos por UDP
+        udp.write(TeleBuffer, posBufferTelem);  //El tamaño coincide con la posicion en la que estamos en el TeleBuffer
+        udp.endPacket();
+        rxState = RXState::idle;            //Volvemos al estado inicial
+      }
+    break;
+  }
+
+
+
+/*
+
   posTele = 0;
   uint8_t cabecera = SerialTelem.read();
-  TeleBuffer[posTele] = cabecera;
-  posTele++;
+  if(cabecera < 6){
+    TeleBuffer[posTele] = cabecera;
+    posTele++;
 
-  for (posTele = 1; posTele < DataLenth[cabecera]; posTele++)
-  {
-    while (!SerialTelem.available());
-    TeleBuffer[posTele] = SerialTelem.read();
+    for (posTele = 1; posTele < DataLenth[cabecera]+1; posTele++)
+    {
+      while (!SerialTelem.available());
+      TeleBuffer[posTele] = SerialTelem.read();
+    }
+    
+    udp.beginPacket(udpAddress,udpPort);
+    udp.write(TeleBuffer, posTele);
+    udp.endPacket();
+  }else{
+    udp.beginPacket(udpAddress,udpPort);
+    udp.write(5);
+    udp.printf("No ha llegado la cabecera-------------------------");
+  //            00000000001111111111222222222233333333334444444444
+  //            01234567890123456789012345678901234567890123456789
+    udp.endPacket();
   }
-  
-  udp.beginPacket(udpAddress,udpPort);
-  udp.write(TeleBuffer, posTele);
-  udp.endPacket();
+*/
 
 /*
   if (cabecera == cab::LIDAR) {
