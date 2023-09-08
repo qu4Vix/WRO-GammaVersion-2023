@@ -2,7 +2,7 @@
 **GammaVersion's repo for WRO Future Engineers 2023 season**
 
 ***
-
+<img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/team-photos/official-photo.jpeg?raw=true">
 ## Contents
 
 * [Hardware](#hardware)
@@ -24,8 +24,15 @@
     * [Credits](#credits)
 
 ***
-Building an autonomous car for this challenge involves a meticulous process of reimagining and redesigning various components to achieve precision, safety, and efficiency. In this project, we focused on enhancing the car's steering mechanism, designing a custom-printed circuit board (PCB) to connect all the components seamlessly, and implementing Light Detection and Ranging (LiDAR) technology for superior distance measurement compared to traditional ultrasonic sensors.
+
 ## Hardware
+Building an autonomous car for this challenge involves a meticulous process of reimagining and redesigning various components to achieve precision, safety, and efficiency. In this project, we focused on enhancing the car's steering mechanism, designing a custom-printed circuit board (PCB) to connect all the components seamlessly, and implementing Light Detection and Ranging (LiDAR) technology for superior distance measurement compared to traditional ultrasonic sensors.
+
+### Models
+    ####3D-Printed Supports and Structural Parts:
+    As a crucial part of our project, we designed and 3D-printed custom supports to secure mechanical components and sensors. These supports ensured precise placement and minimized interference. Additionally, we utilized 3D printing to create lightweight yet robust structural components, allowing us to tailor the car's design to our specific needs while maintaining its strength and adaptability.
+
+### Electronics
     LiDAR Implementation:
     Rather than relying on traditional ultrasonic sensors for obstacle detection, we opted for LiDAR technology. LiDAR, which stands for Light Detection and Ranging, uses laser beams to measure distances to objects with exceptional precision. This technology offers several advantages over ultrasonic sensors:
 
@@ -37,15 +44,12 @@ Building an autonomous car for this challenge involves a meticulous process of r
 
     d. Environmental Adaptability: LiDAR is less affected by environmental factors such as ambient light, making it more reliable in various conditions.
 
-### Models
-    3D-Printed Supports and Structural Parts:
-    As a crucial part of our project, we designed and 3D-printed custom supports to secure mechanical components and sensors. These supports ensured precise placement and minimized interference. Additionally, we utilized 3D printing to create lightweight yet robust structural components, allowing us to tailor the car's design to our specific needs while maintaining its strength and adaptability.
-
-### Electronics
     Custom PCB Design:
     To seamlessly connect and control all the components of our autonomous car, we designed and printed a custom PCB. The PCB acted as the central hub that allowed us to interface with sensors, motors, microcontrollers, and other electronic components efficiently.
 
     Our custom PCB design allowed for cleaner wiring, reduced interference, and enhanced reliability. It simplified the process of connecting and configuring various sensors and actuators, enabling smoother integration and troubleshooting during the development phase.
+
+
 
 ### Assembly
     Steering System Redesign:
