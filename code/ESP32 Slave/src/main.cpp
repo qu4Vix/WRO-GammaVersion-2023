@@ -24,7 +24,7 @@ Encoder miencoder(pinEncoder_DT);
 #if ROUND_NUMBER == 2
 
 #define TAMANO_MINIMO_ESQUIVE 20
-#define ALTURA_MINIMA_ESQUIVE 63
+#define ALTURA_MINIMA_ESQUIVE 40
 
 Pixy2 pixy;
 #endif
@@ -62,7 +62,7 @@ void setup() {
   miota.OTAInit();
   #endif
   
-  Serial.print("Time: ");
+  Serial.println("Time: ");
   delay(5000);
 
   timerHandler = timerBegin(0, 80, true);
@@ -124,6 +124,8 @@ void loop() {
       }
       if (tamano >= TAMANO_MINIMO_ESQUIVE) {
         if (pixy.ccc.blocks[mayor].m_y >= ALTURA_MINIMA_ESQUIVE) {
+          //Serial.println("tamano: " + String(tamano));
+          //Serial.println("y: " + String(pixy.ccc.blocks[mayor].m_y));
           sendCamera(pixy.ccc.blocks[mayor].m_signature, pixy.ccc.blocks[mayor].m_x, pixy.ccc.blocks[mayor].m_y);
         }
       }

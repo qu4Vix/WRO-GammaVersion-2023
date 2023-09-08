@@ -73,7 +73,7 @@ uint8_t estado = e::Inicio;
 // number of turns
 uint8_t giros = 1;
 // section in which the car is
-uint8_t tramo = 0;
+uint8_t tramo = 1;
 // sense of turn
 int8_t turnSense = 0;
 
@@ -107,6 +107,7 @@ bool fixInverted = true;
 // trajectory management variables
 
 uint16_t tramos[8] = {2500, 2500, 2500, 2500, 500, 500, 500, 500};
+uint8_t arrayBloques[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 // object declarations
 
@@ -153,8 +154,9 @@ void setYcoord(uint16_t f);   // set the coordinate y axis
 void decideTurn();  // detect the sense of turn
 void checkTurn();   // check wether you have to turn or not
 
-void changeLane(uint16_t objective);
+void changeLane(uint8_t _tramo);
 bool setCoordTramo(uint8_t tramo, uint16_t leftCoord, uint16_t rightCoord);
+void correctLane(uint8_t _tramo);
 
 void setup() {
   // put your setup code here, to run once:
@@ -234,7 +236,7 @@ void setup() {
   delay(500);
 
   // start driving (set a speed to the car and initialize the mpu)
-  setSpeed(2);
+  //setSpeed(2);
   mimpu.measureFirstMillis();
 }
 
@@ -313,12 +315,12 @@ void loop() {
             --Cámara firma1 x 8 bits
             --Cámara firma1 y 8 bits
             --Cámara firma2 Detectada 1byte
-            --Cámara firma2 x 8bits
-            --Cámara firma2 y 8bits
+            --ArrayTramo      8 bytes
+            --tramo           1 byte
             
-            |XXXX|YYYY|MMMM|NNNN|QQQQ|W|E|RRRR|TTTT|U|I|O|A|S|D
-             0000 0000 0111 1111 1112 2 2 2222 2223 3 3 3 3 3 3
-             1234 5678 9012 3456 7890 1 2 3456 7890 1 2 3 4 5 6
+            |XXXX|YYYY|MMMM|NNNN|QQQQ|W|E|RRRR|TTTT|U|I|O|A|S|D|arrayTramo|tramo
+             0000 0000 0111 1111 1112 2 2 2222 2223 3 3 3 3 3 3 33344444   4
+             1234 5678 9012 3456 7890 1 2 3456 7890 1 2 3 4 5 6 78901234   5
             */
     for(int i = 0; i<4; i++){   //Enviamos la cabecera de inicio de paquete
       teleSerial.write(0xAA);
@@ -344,7 +346,9 @@ void loop() {
     enviarDato((byte*)&firma1Y,sizeof(firma1Y));
     enviarDato((byte*)&firma2Detectada,sizeof(firma2Detectada));
     enviarDato((byte*)&firma2X,sizeof(firma2X));
-    enviarDato((byte*)&firma2Y,sizeof(firma2Y));    
+    enviarDato((byte*)&firma2Y,sizeof(firma2Y));
+    enviarDato((byte*)&arrayBloques,sizeof(arrayBloques));         //********
+    enviarDato((byte*)&tramo,sizeof(tramo)); 
 
     prev_ms_tele = millis();
   }
@@ -379,7 +383,7 @@ void loop() {
       setXcoord(readDistance(270));
       objectivePosition = xPosition;
       estado = e::Recto;
-      setSpeed(7);
+      //setSpeed(7);
     }
   break;
   case e::Recto:
@@ -444,7 +448,6 @@ void receiveData() {
     commSerial.readBytes(&SignatureY, 1);
     // solo aceptar firmas en la primera vuelta
     if (giros < 6) {
-      firma1Detectada = firma2Detectada = 0;
       firma1Detectada = (Signature==1);
       firma2Detectada = (Signature==2);
       firma1X = SignatureX;
@@ -642,42 +645,42 @@ void checkTurn() {
     break;
 
   case 1:
-    if (yPosition >= 1000) changeLane((giros==1)?0:2500);
-    if (setCoordTramo(0, 2150, 2850)) changeLane(tramos[0]);
+    if (setCoordTramo(0, 2150, 2850)) correctLane(0);
+    if (yPosition >= 1000) changeLane(1);
     break;
   
   case 2:
-    setCoordTramo(1, 2150, 2850);
+    if ((yPosition <= 1600) && setCoordTramo(1, 2150, 2850)) correctLane(1);
     if (yPosition >= (giros==1)?2100:2000) turn();
     break;
 
   case 3:
-    if(setCoordTramo(2, 2150, 2850)) changeLane(tramos[2]);
-    if (xPosition <= 2000) changeLane(tramos[3]);
+    if (setCoordTramo(2, 2150, 2850)) correctLane(2);
+    if (xPosition <= 2000) changeLane(3);
     break;
 
   case 4:
-    setCoordTramo(3, 2150, 2850);
+    if ((xPosition >= 1400) && (setCoordTramo(3, 2150, 2850))) correctLane(3);
     if (xPosition <= 1000) turn();
     break;
   
   case 5:
-    if (setCoordTramo(4, 850, 150)) changeLane(tramos[4]);
-    if (yPosition <= 2000) changeLane(tramos[5]);
+    if (setCoordTramo(4, 850, 150)) correctLane(4);
+    if (yPosition <= 2000) changeLane(5);
     break;
   
   case 6:
-    setCoordTramo(5, 850, 150);
+    if ((yPosition >= 1400) && (setCoordTramo(5, 850, 150))) correctLane(5);
     if (yPosition <= 1000) turn();
     break;
 
   case 7:
-    if (setCoordTramo(6, 850, 150)) changeLane(tramos[6]);
-    if (xPosition >= 1000) changeLane(tramos[7]);
+    if (setCoordTramo(6, 850, 150)) correctLane(6);
+    if (xPosition >= 1000) changeLane(7);
     break;
 
   case 8:
-    setCoordTramo(7, 850, 150);
+    if ((xPosition <= 1600) && (setCoordTramo(7, 850, 150))) correctLane(7);
     if (xPosition >= 2000) turn();
     break;
   }
@@ -695,9 +698,13 @@ void decideTurn(){
   else turnSense = 0;
 }
 
-void changeLane(uint16_t objective) {
-  objectivePosition = objective;
+void changeLane(uint8_t _tramo) {
+  objectivePosition = tramos[_tramo];
   tramo++;
+}
+
+void correctLane(uint8_t _tramo) {
+  objectivePosition = tramos[_tramo];
 }
 
 void enviarDato(byte* pointer, int8_t size){
@@ -711,11 +718,13 @@ void enviarDato(byte* pointer, int8_t size){
 
 bool setCoordTramo(uint8_t _tramo, uint16_t leftCoord, uint16_t rightCoord) {
   if (firma1Detectada) {
+    arrayBloques[_tramo] = GreenSignature;
     tramos[_tramo] = leftCoord;
     firma1Detectada = false;
     return true;
   }
   if (firma2Detectada) {
+    arrayBloques[_tramo] = RedSignature;
     tramos[_tramo] = rightCoord;
     firma2Detectada = false;
     return true;
