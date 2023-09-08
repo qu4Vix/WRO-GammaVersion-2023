@@ -27,13 +27,13 @@ uint16_t posBuffer;
 uint8_t TeleBuffer[1000];
 uint16_t posTele;
 
-uint16_t DataLenth[6] = {5,10,15,360,720,36};   //Dependiendo del tipo de paquete, éste contendrá cierta cantidad de datos
+uint16_t DataLenth[6] = {5,10,15,360,720,45};   //Dependiendo del tipo de paquete, éste contendrá cierta cantidad de datos
                                                 //  -0 -> 5 datos     ->NA
                                                 //  -1 -> 10 datos    ->NA
                                                 //  -2 -> 15 datos    ->NA
                                                 //  -3 -> 360 datos   ->Lidar Quality
                                                 //  -4 -> 720 datos   ->Lidar Distances
-                                                //  -5 -> 47 datos    ->Información general
+                                                //  -5 -> 45 datos    ->Información general
 
   /* TIPO 5 INFORMACION GENERAL
             --Posicion x 8 bytes
@@ -51,10 +51,12 @@ uint16_t DataLenth[6] = {5,10,15,360,720,36};   //Dependiendo del tipo de paquet
             --Cámara firma2 Detectada 1byte
             --Cámara firma2 x 8bits
             --Cámara firma2 y 8bits
+            --ArrayTramo      8 bytes
+            --tramo           1 byte
             
-            |XXXX|YYYY|MMMM|NNNN|QQQQ|W|E|RRRR|TTTT|U|I|O|A|S|D
-             0000 0000 0111 1111 1111 2 2 2222 2222 3 3 3 3 3 3
-             1234 5678 9012 3456 7890 1 2 3456 7890 1 2 3 4 5 6
+            |XXXX|YYYY|MMMM|NNNN|QQQQ|W|E|RRRR|TTTT|U|I|O|A|S|D|arrayTramo|tramo
+             0000 0000 0111 1111 1112 2 2 2222 2223 3 3 3 3 3 3 33344444   4
+             1234 5678 9012 3456 7890 1 2 3456 7890 1 2 3 4 5 6 78901234   5
             */
                                                 
 
