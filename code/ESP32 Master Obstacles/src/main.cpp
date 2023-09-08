@@ -236,7 +236,7 @@ void setup() {
   delay(500);
 
   // start driving (set a speed to the car and initialize the mpu)
-  //setSpeed(2);
+  setSpeed(2);
   mimpu.measureFirstMillis();
 }
 
@@ -380,16 +380,20 @@ void loop() {
   case e::Inicio:
     if (yPosition >= 2100) {
       decideTurn();
-      setXcoord(readDistance(270));
-      objectivePosition = xPosition;
-      estado = e::Recto;
-      //setSpeed(7);
+      if (turnSense !=0 ) {
+        firma1Detectada = firma2Detectada = false;
+        setXcoord(readDistance(270));
+        objectivePosition = xPosition;
+        estado = e::Recto;
+        //setSpeed(7);
+      }
     }
   break;
   case e::Recto:
     if (giros == 13) {
       estado = e::Final;
     }
+    if (giros == 5) setSpeed(5);
   break;
   case e::Final:
     if (yPosition >= 1200) {
@@ -439,7 +443,7 @@ void receiveData() {
     bateria = tensionValue;
     manageTension(tensionValue);
   }
-  else if(firstByte == 5){ //Camera data
+  else if (firstByte == 5) { //Camera data
     uint8_t Signature;
     uint8_t SignatureX;
     uint8_t SignatureY;
@@ -563,6 +567,7 @@ void iteratePositionPID() {
 }
 
 void turn() {
+  firma1Detectada = firma2Detectada = 0;
   switch ((tramo+1) * turnSense)
   {
   case -1:
@@ -628,6 +633,11 @@ void setYcoord(uint16_t f) {
 void checkTurn() {
   switch ((tramo+1) * turnSense)
   {
+  case 0:
+    if (setCoordTramo(1, 2200, 2800)) {
+      objectivePosition = tramos[1] - 2500;
+    }
+    break;
   case -1:
     if (yPosition >= trackPath - turnOffset) turn();
     break;
@@ -645,42 +655,42 @@ void checkTurn() {
     break;
 
   case 1:
-    if (setCoordTramo(0, 2150, 2850)) correctLane(0);
+    if (setCoordTramo(0, 2200, 2800)) correctLane(0);
     if (yPosition >= 1000) changeLane(1);
     break;
   
   case 2:
-    if ((yPosition <= 1600) && setCoordTramo(1, 2150, 2850)) correctLane(1);
-    if (yPosition >= (giros==1)?2100:2000) turn();
+    if ((yPosition <= 1600) && setCoordTramo(1, 2200, 2800)) correctLane(1);
+    if (yPosition >= 2100) turn();
     break;
 
   case 3:
-    if (setCoordTramo(2, 2150, 2850)) correctLane(2);
+    if (setCoordTramo(2, 2200, 2800)) correctLane(2);
     if (xPosition <= 2000) changeLane(3);
     break;
 
   case 4:
-    if ((xPosition >= 1400) && (setCoordTramo(3, 2150, 2850))) correctLane(3);
+    if ((xPosition >= 1400) && (setCoordTramo(3, 2200, 2800))) correctLane(3);
     if (xPosition <= 1000) turn();
     break;
   
   case 5:
-    if (setCoordTramo(4, 850, 150)) correctLane(4);
+    if (setCoordTramo(4, 800, 200)) correctLane(4);
     if (yPosition <= 2000) changeLane(5);
     break;
   
   case 6:
-    if ((yPosition >= 1400) && (setCoordTramo(5, 850, 150))) correctLane(5);
+    if ((yPosition >= 1400) && (setCoordTramo(5, 800, 200))) correctLane(5);
     if (yPosition <= 1000) turn();
     break;
 
   case 7:
-    if (setCoordTramo(6, 850, 150)) correctLane(6);
+    if (setCoordTramo(6, 800, 200)) correctLane(6);
     if (xPosition >= 1000) changeLane(7);
     break;
 
   case 8:
-    if ((xPosition <= 1600) && (setCoordTramo(7, 850, 150))) correctLane(7);
+    if ((xPosition <= 1600) && (setCoordTramo(7, 800, 200))) correctLane(7);
     if (xPosition >= 2000) turn();
     break;
   }
