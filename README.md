@@ -52,7 +52,11 @@ Our custom PCB design allowed for cleaner wiring, reduced interference, and enha
 Our custom-designed PCB played a central role in integrating various components seamlessly. To ensure efficient power management and distribution, we implemented three distinct power sources:
 
 a. Dual 5-Volt Power Supplies: One 5-volt power supply was dedicated to powering the LiDAR system, while the other supplied power to the steering servos. This separation of power sources allowed us to optimize the energy delivery to these critical components, ensuring their reliable operation.
-<img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/5V%20Lidar1.png?raw=true"> <img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/5V1.png?raw=true">
+<div calss ="row">
+    <div class="column"><img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/5V%20Lidar1.png?raw=true"></div>
+    <div class="column"><img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/5V%20Lidar1.png?raw=true"></div>
+</div>
+ <img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/5V1.png?raw=true">
 
 b. 3.3-Volt Power Supply: A dedicated 3.3-volt power supply was employed to energize the microcontrollers, IMU (Inertial Measurement Unit), motor drivers, and LED lights. This voltage level was carefully chosen to meet the requirements of these electronic components, guaranteeing stable and consistent performance.
 <img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/3.3V1.png?raw=true">
