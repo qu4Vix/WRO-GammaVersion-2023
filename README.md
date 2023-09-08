@@ -31,6 +31,7 @@ Building an autonomous car for this challenge involves a meticulous process of r
 ### Models
 **3D-Printed Supports and Structural Parts:**
 As a crucial part of our project, we designed and 3D-printed custom supports to secure mechanical components and sensors. These supports ensured precise placement and minimized interference. Additionally, we utilized 3D printing to create lightweight yet robust structural components, allowing us to tailor the car's design to our specific needs while maintaining its strength and adaptability.
+<img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/3.3V1.png?raw=true">
 
 ### Electronics
 **LiDAR Implementation:**
@@ -43,20 +44,21 @@ b. High Precision: LiDAR provides accurate distance measurements, resulting in b
 c. 360-Degree Coverage: LiDAR offers a full 360-degree view around the car, ensuring comprehensive situational awareness.
 
 d. Environmental Adaptability: LiDAR is less affected by environmental factors such as ambient light, making it more reliable in various conditions.
+<img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/vehicle-photos/other%20photos/LIDAR1.jpg?raw=true">
 
 **Custom PCB Design:**
 To seamlessly connect and control all the components of our autonomous car, we designed and printed a custom PCB. The PCB acted as the central hub that allowed us to interface with sensors, motors, microcontrollers, and other electronic components efficiently.
 
 Our custom PCB design allowed for cleaner wiring, reduced interference, and enhanced reliability. It simplified the process of connecting and configuring various sensors and actuators, enabling smoother integration and troubleshooting during the development phase.
+<img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/vehicle-photos/other%20photos/PCB1.jpg?raw=true">
 
 Our custom-designed PCB played a central role in integrating various components seamlessly. To ensure efficient power management and distribution, we implemented three distinct power sources:
 
 a. Dual 5-Volt Power Supplies: One 5-volt power supply was dedicated to powering the LiDAR system, while the other supplied power to the steering servos. This separation of power sources allowed us to optimize the energy delivery to these critical components, ensuring their reliable operation.
 <div calss ="row">
     <div class="column"><img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/5V%20Lidar1.png?raw=true"></div>
-    <div class="column"><img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/5V%20Lidar1.png?raw=true"></div>
+    <div class="column"><img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/5V1.png?raw=true"></div>
 </div>
- <img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/5V1.png?raw=true">
 
 b. 3.3-Volt Power Supply: A dedicated 3.3-volt power supply was employed to energize the microcontrollers, IMU (Inertial Measurement Unit), motor drivers, and LED lights. This voltage level was carefully chosen to meet the requirements of these electronic components, guaranteeing stable and consistent performance.
 <img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/3.3V1.png?raw=true">
@@ -69,6 +71,7 @@ By employing these distinct power sources, we effectively managed the power need
 One of the key aspects of our project was reimagining the steering system to achieve a reduced turn ratio. To accomplish this, we implemented Ackermann steering geometry. Ackermann steering geometry is a mechanism that ensures that all four wheels of the car track along different paths during a turn, reducing tire wear and enabling smoother and more precise turns.
 
 By incorporating Ackermann steering, we were able to optimize the car's turning radius, allowing it to navigate tighter corners with ease. This was achieved by adjusting the angles of the wheels and their pivot points, ensuring that the inner and outer wheels followed distinct paths, greatly enhancing the car's maneuverability.
+<img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/vehicle-photos/other%20photos/Direccion1.png?raw=true">
 
 
 
