@@ -85,9 +85,10 @@ By incorporating Ackermann steering, we were able to optimize the car's turning 
 ## Photos
 
 ### Car images
-| ![front] (./vehicle-photos/other%20photos/Direccion1.png)| ![front] (./vehicle-photos/other%20photos/Direccion1.png)|
-| ![front] (./vehicle-photos/other%20photos/Direccion1.png)| ![front] (./vehicle-photos/other%20photos/Direccion1.png)|
-| ![front] (./vehicle-photos/other%20photos/Direccion1.png)|[ !front] (./vehicle-photos/other%20photos/Direccion1.png)|
+| | |
+| ![front] (./vehicle-photos/other%20photos/Direccion1.png) | ![front] (./vehicle-photos/other%20photos/Direccion1.png) |
+| ![front] (./vehicle-photos/other%20photos/Direccion1.png) | ![front] (./vehicle-photos/other%20photos/Direccion1.png) |
+| ![front] (./vehicle-photos/other%20photos/Direccion1.png) | ![front] (./vehicle-photos/other%20photos/Direccion1.png) |
 
 ### Team images
 
