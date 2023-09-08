@@ -47,6 +47,16 @@ c. 360-Degree Coverage: LiDAR offers a full 360-degree view around the car, ensu
 d. Environmental Adaptability: LiDAR is less affected by environmental factors such as ambient light, making it more reliable in various conditions.
 <img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/vehicle-photos/other%20photos/LIDAR1.jpg?raw=true">
 
+**Esp-32**
+To bring our autonomous car project to fruition, we opted for the ESP-32 microcontroller as the central control unit. The ESP-32 boasts several compelling advantages that played a pivotal role in our decision-making process:
+
+1. Computing Power and Versatility: The ESP-32 distinguishes itself with its robust computational capabilities and remarkable versatility. Equipped with a potent dual-core processor and ample memory capacity, it emerged as the natural choice for our robotics endeavor, enabling rapid computation and accommodating our storage needs seamlessly.
+
+2. Advanced Wireless Connectivity: The ESP-32 integrates cutting-edge Wi-Fi and Bluetooth connectivity, positioning it as a frontrunner for efficient wireless communication. This capability empowered us to establish seamless and reliable communication channels between the autonomous car and external devices, such as remote controls or monitoring systems.
+
+3. Sensor and Actuator Compatibility: The ESP-32's adaptability extends to sensor and actuator integration. With its multitude of I/O (input/output) pins and versatile interface options, we effortlessly connected and controlled various sensors, including the IMU and LiDAR, as well as the steering servos.
+<img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/vehicle-photos/other%20photos/esp-32.jpg?raw=true">
+
 **Custom PCB Design:**
 To seamlessly connect and control all the components of our autonomous car, we designed and printed a custom PCB. The PCB acted as the central hub that allowed us to interface with sensors, motors, microcontrollers, and other electronic components efficiently.
 
