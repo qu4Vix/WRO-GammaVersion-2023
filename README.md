@@ -102,6 +102,9 @@ By incorporating Ackermann steering, we were able to optimize the car's turning 
 | ![top](./vehicle-photos/officials/vehicleUpside.jpg) | ![bottom](./vehicle-photos/officials/vehicleDownside.jpg) |
 
 ### Team images
+| | |
+| ------------------------- | ------------------------- |
+| ![official](./team-photos/official-photo.jpeg) | ![funny](./team-photos/funny-photo.jpeg) |
 
 ***
 
