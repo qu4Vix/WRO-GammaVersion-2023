@@ -3,6 +3,7 @@
 
 ***
 <img src="https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/team-photos/official-photo.jpeg?raw=true">
+
 ## Contents
 
 * [Hardware](#hardware)
@@ -31,7 +32,7 @@ Building an autonomous car for this challenge involves a meticulous process of r
 ### Models
 **3D-Printed Supports and Structural Parts:**
 As a crucial part of our project, we designed and 3D-printed custom supports to secure mechanical components and sensors. These supports ensured precise placement and minimized interference. Additionally, we utilized 3D printing to create lightweight yet robust structural components, allowing us to tailor the car's design to our specific needs while maintaining its strength and adaptability.
-<img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/robot-info/hardware/electronics/Photos/3.3V1.png?raw=true">
+<img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/vehicle-photos/other%20photos/3D.png?raw=true">
 
 ### Electronics
 **LiDAR Implementation:**
@@ -71,7 +72,7 @@ By employing these distinct power sources, we effectively managed the power need
 One of the key aspects of our project was reimagining the steering system to achieve a reduced turn ratio. To accomplish this, we implemented Ackermann steering geometry. Ackermann steering geometry is a mechanism that ensures that all four wheels of the car track along different paths during a turn, reducing tire wear and enabling smoother and more precise turns.
 
 By incorporating Ackermann steering, we were able to optimize the car's turning radius, allowing it to navigate tighter corners with ease. This was achieved by adjusting the angles of the wheels and their pivot points, ensuring that the inner and outer wheels followed distinct paths, greatly enhancing the car's maneuverability.
-<img src = "https://github.com/qu4Vix/WRO-GammaVersion-2023/blob/main/vehicle-photos/other%20photos/Direccion1.png?raw=true">
+<img src = "/vehicle-photos/other%20photos/Direccion1.png?raw=true">
 
 
 
@@ -84,6 +85,9 @@ By incorporating Ackermann steering, we were able to optimize the car's turning 
 ## Photos
 
 ### Car images
+|<img src = "/vehicle-photos/other%20photos/Direccion1.png?raw=true">|<img src = "/vehicle-photos/other%20photos/Direccion1.png?raw=true">|
+|<img src = "/vehicle-photos/other%20photos/Direccion1.png?raw=true">|<img src = "/vehicle-photos/other%20photos/Direccion1.png?raw=true">|
+|<img src = "/vehicle-photos/other%20photos/Direccion1.png?raw=true">|<img src = "/vehicle-photos/other%20photos/Direccion1.png?raw=true">|
 
 ### Team images
 
