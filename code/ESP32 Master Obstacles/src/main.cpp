@@ -64,7 +64,9 @@ uint8_t estado = e::Inicio;
 // size of the map (mm)
 #define mapSize 3000
 // coordinate of the central lane (mm)
-#define trackPath 2500
+#define trackCenter 500
+// coordinate of the lateral lane (mm)
+#define trackLateral 300
 // distance to path on which the car should try to turn (mm)
 #define turnOffset 300
 
@@ -106,7 +108,7 @@ bool fixInverted = true;
 
 // trajectory management variables
 
-uint16_t tramos[8] = {2500, 2500, 2500, 2500, 500, 500, 500, 500};
+uint16_t tramos[8] = {mapSize - trackCenter, mapSize - trackCenter, mapSize - trackCenter, mapSize - trackCenter, trackCenter, trackCenter, trackCenter, trackCenter};
 uint8_t arrayBloques[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 // object declarations
@@ -571,25 +573,25 @@ void turn() {
   switch ((tramo+1) * turnSense)
   {
   case -1:
-    objectivePosition = trackPath;
+    objectivePosition = trackCenter;
     fixInverted = false;
     tramo = 1;
     break;
   
   case -2:
-    objectivePosition = trackPath;
+    objectivePosition = trackCenter;
     fixInverted = false;
     tramo = 2;
     break;
 
   case -3:
-    objectivePosition = mapSize - trackPath;
+    objectivePosition = mapSize - trackCenter;
     fixInverted = true;
     tramo = 3;
     break;
 
   case -4:
-    objectivePosition = mapSize - trackPath;
+    objectivePosition = mapSize - trackCenter;
     fixInverted = true;
     tramo = 0;
     break;
@@ -639,19 +641,19 @@ void checkTurn() {
     }
     break;
   case -1:
-    if (yPosition >= trackPath - turnOffset) turn();
+    if (yPosition >= trackCenter - turnOffset) turn();
     break;
   
   case -2:
-    if (xPosition >= trackPath - turnOffset) turn();
+    if (xPosition >= trackCenter - turnOffset) turn();
     break;
 
   case -3:
-    if (yPosition <= mapSize - trackPath + turnOffset) turn();
+    if (yPosition <= mapSize - trackCenter + turnOffset) turn();
     break;
 
   case -4:
-    if (xPosition <= mapSize - trackPath + turnOffset) turn();
+    if (xPosition <= mapSize - trackCenter + turnOffset) turn();
     break;
 
   case 1:
