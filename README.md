@@ -7,9 +7,10 @@
 ## Contents
 
 * [Hardware](#hardware)
+    * [Components](#component-list)
     * [Models](#models)
     * [Electronics](#electronics)
-    * [Assembly](#assembly)
+    * [Ackerman's](#ackerman-steering-geometry)
 
 * [Software](#software)
     * [Sensors](#sensors)
@@ -31,6 +32,18 @@
 
 ## Hardware
 Building an autonomous car for this challenge involves a meticulous process of reimagining and redesigning various components to achieve precision, safety, and efficiency. In this project, we focused on enhancing the car's steering mechanism, designing a custom-printed circuit board (PCB) to connect all the components seamlessly, and implementing Light Detection and Ranging (LiDAR) technology for superior distance measurement compared to traditional ultrasonic sensors.
+
+### Component List
+* **DOIT ESP32 DevKit V1 x2**
+* **Pixy 2**
+* **RPLIDAR A1 M8**
+* **MPU 9250**
+* **Pololu Magnetic Encoder**
+* **DSM44 Servo**
+* **RC Smart Car Chassis Kit** Includes a simple motor
+* **Motor Driver x2**
+* **Power Supply x3**
+* **RGB LEDS**
 
 ### Models
 **3D-Printed Supports and Structural Parts:**
@@ -80,8 +93,7 @@ b. 3.3-Volt Power Supply: A dedicated 3.3-volt power supply was employed to ener
 By employing these distinct power sources, we effectively managed the power needs of our autonomous car's various subsystems, ensuring that each component received the appropriate voltage and current for reliable operation. This meticulous power management contributed to the overall success and stability of our robotics project.
 
 
-### Assembly
-**Steering System Redesign:**
+### Ackerman's Steering Geometry
 One of the key aspects of our project was reimagining the steering system to achieve a reduced turn ratio. To accomplish this, we implemented Ackermann steering geometry. Ackermann steering geometry is a mechanism that ensures that all four wheels of the car track along different paths during a turn, reducing tire wear and enabling smoother and more precise turns.
 
 By incorporating Ackermann steering, we were able to optimize the car's turning radius, allowing it to navigate tighter corners with ease. This was achieved by adjusting the angles of the wheels and their pivot points, ensuring that the inner and outer wheels followed distinct paths, greatly enhancing the car's maneuverability.
@@ -129,8 +141,8 @@ Our strategy is to make the car able to define a path for the it to follow depen
 
 Demonstration videos of the car successfully completing both challenges.
 The links to each of them can be found in:
-* [Open Challenge](/videos/first-round.md)
-* [Obstacle Challenge](/videos/second-round.md)
+* [Open Challenge](https://youtu.be/Oyp9x_MhnpQ?si=n7GRa3e0AN-YdxIk)
+* [Obstacle Challenge](https://youtu.be/bCaAXYcNQ1c)
 
 ***
 
