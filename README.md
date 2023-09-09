@@ -12,6 +12,9 @@
     * [Assembly](#assembly)
 
 * [Software](#software)
+    * [Sensors](#sensors)
+    * [Position](#position)
+    * [Strategy](#strategy)
 
 * [Photos](#photos)
     * [Car images](#car-images)
@@ -90,6 +93,18 @@ By incorporating Ackermann steering, we were able to optimize the car's turning 
 
 ## Software
 
+### Sensors
+* **MPU:** We use the MPU's GyroScope functionality to measure the angular speed along the Z-axis. Integrating this speed over time we get the orientation of the car.
+* **Encoder:** The encoder allows us to know the displacement of the car and consequently its speed, which we regulate using a PID controller.
+* **LIDAR:** The LIDAR sensor measures distances on a 360º range, therefore it allows the car to have a great knowledge of the surroundings. We store all the readings in an array when they are received.
+* **Pixy 2:** Pixy is an intelligent camera which can identify regions with the same colour. As a result, our code to handle the detection of the traffic lights is very reduced. 
+
+### Position
+With the data of the orientation and the displacement of the car we are able to calculate the position of the car. This is worked out by integrating the displacement over the trajectory of the car. With these calculations the coordiante origin is set to the initial position of the car, but we change it to the bottom left corner of the playfield with the measures of the LIDAR.
+
+### Strategy
+Our strategy is to make the car able to define a path for the it to follow depending on the colour blocks it detects. We devide the playfield into eight sections, and the car stores whether it has to travel to the right or to the left in each section.
+
 ***
 
 ## Photos
@@ -111,6 +126,11 @@ By incorporating Ackermann steering, we were able to optimize the car's turning 
 ## Videos
 
 ### Demonstration videos
+
+Demonstration videos of the car successfully completing both challenges.
+The links to each of them can be found in:
+* [Open Challenge](/videos/first-round.md)
+* [Obstacle Challenge](/videos/second-round.md)
 
 ***
 
