@@ -24,7 +24,7 @@ Encoder miencoder(pinEncoder_DT);
 #if ROUND_NUMBER == 2
 
 #define TAMANO_MINIMO_ESQUIVE 20
-#define ALTURA_MINIMA_ESQUIVE 40
+#define ALTURA_MINIMA_ESQUIVE 65
 
 Pixy2 pixy;
 #endif

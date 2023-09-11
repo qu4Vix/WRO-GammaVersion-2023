@@ -38,10 +38,10 @@ uint8_t bateria;
 #define GreenSignature 1
 #define RedSignature 2
 
-bool firma1Detectada = true;
+bool firma1Detectada = false;
 uint8_t firma1X = 18;
 uint8_t firma1Y = 19;
-bool firma2Detectada = true;
+bool firma2Detectada = false;
 uint8_t firma2X = 20;
 uint8_t firma2Y = 21;
 
@@ -108,7 +108,10 @@ bool fixInverted = true;
 
 // trajectory management variables
 
-uint16_t tramos[8] = {mapSize - trackCenter, mapSize - trackCenter, mapSize - trackCenter, mapSize - trackCenter, trackCenter, trackCenter, trackCenter, trackCenter};
+uint16_t tramos[2][8] ={
+  {500,500,2500,2500,2500,2500,500,500},
+  {mapSize - trackCenter, mapSize - trackCenter, mapSize - trackCenter, mapSize - trackCenter, trackCenter, trackCenter, trackCenter, trackCenter}
+};
 uint8_t arrayBloques[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 // object declarations
@@ -238,7 +241,7 @@ void setup() {
   delay(500);
 
   // start driving (set a speed to the car and initialize the mpu)
-  setSpeed(2);
+  //setSpeed(2);
   mimpu.measureFirstMillis();
 }
 
@@ -386,6 +389,9 @@ void loop() {
         firma1Detectada = firma2Detectada = false;
         setXcoord(readDistance(270));
         objectivePosition = xPosition;
+        if (turnSense==-1) {
+          tramos[0][1] -=2000;
+        }
         estado = e::Recto;
         //setSpeed(7);
       }
@@ -395,7 +401,7 @@ void loop() {
     if (giros == 13) {
       estado = e::Final;
     }
-    if (giros == 5) setSpeed(5);
+    //if (giros == 5) setSpeed(5);
   break;
   case e::Final:
     if (yPosition >= 1200) {
@@ -572,50 +578,50 @@ void turn() {
   firma1Detectada = firma2Detectada = 0;
   switch ((tramo+1) * turnSense)
   {
-  case -1:
-    objectivePosition = trackCenter;
+  case -2:
+    objectivePosition = tramos[bool((turnSense+1)/2)][2];
     fixInverted = false;
-    tramo = 1;
+    tramo++;
     break;
   
-  case -2:
-    objectivePosition = trackCenter;
-    fixInverted = false;
-    tramo = 2;
-    break;
-
-  case -3:
-    objectivePosition = mapSize - trackCenter;
-    fixInverted = true;
-    tramo = 3;
-    break;
-
   case -4:
-    objectivePosition = mapSize - trackCenter;
+    objectivePosition = tramos[bool((turnSense+1)/2)][4];
+    fixInverted = false;
+    tramo++;
+    break;
+
+  case -6:
+    objectivePosition = tramos[bool((turnSense+1)/2)][6];
+    fixInverted = true;
+    tramo++;
+    break;
+
+  case -8:
+    objectivePosition = tramos[bool((turnSense+1)/2)][0];
     fixInverted = true;
     tramo = 0;
     break;
   
   case 2:
-    objectivePosition = tramos[2];
+    objectivePosition = tramos[bool((turnSense+1)/2)][2];
     fixInverted = true;
     tramo++;
     break;
   
   case 4:
-    objectivePosition = tramos[4];
+    objectivePosition = tramos[bool((turnSense+1)/2)][4];
     fixInverted = false;
     tramo++;
     break;
 
   case 6:
-    objectivePosition = tramos[6];
+    objectivePosition = tramos[bool((turnSense+1)/2)][6];
     fixInverted = false;
     tramo++;
     break;
 
   case 8:
-    objectivePosition = tramos[0];
+    objectivePosition = tramos[bool((turnSense+1)/2)][0];
     fixInverted = true;
     tramo = 0;
     break;
@@ -637,23 +643,47 @@ void checkTurn() {
   {
   case 0:
     if (setCoordTramo(1, 2200, 2800)) {
-      objectivePosition = tramos[1] - 2500;
+      objectivePosition = tramos[bool((turnSense+1)/2)][1] - 2500;
     }
     break;
   case -1:
-    if (yPosition >= trackCenter - turnOffset) turn();
+    if (setCoordTramo(0, 200, 800)) correctLane(0);
+    if (yPosition >= 1000) changeLane(1);
     break;
   
   case -2:
-    if (xPosition >= trackCenter - turnOffset) turn();
+    if ((yPosition <= 1600) && setCoordTramo(1, 200, 800)) correctLane(1);
+    if (yPosition >= 2000) turn();
     break;
 
   case -3:
-    if (yPosition <= mapSize - trackCenter + turnOffset) turn();
+    if (setCoordTramo(2, 2800, 2200)) correctLane(2);
+    if (xPosition >= 1000) changeLane(3);
     break;
 
   case -4:
-    if (xPosition <= mapSize - trackCenter + turnOffset) turn();
+    if ((xPosition <= 1600) && (setCoordTramo(3, 2800, 2200))) correctLane(3);
+    if (xPosition >= 2000) turn();
+    break;
+
+  case -5:
+    if (setCoordTramo(4, 2800, 2200)) correctLane(4);
+    if (yPosition <= 2000) changeLane(5);
+    break;
+
+  case -6:
+    if ((yPosition >= 1400) && (setCoordTramo(5, 2800, 2200))) correctLane(5);
+    if (yPosition <= 1000) turn();
+    break;
+
+  case -7:
+    if (setCoordTramo(6, 200, 800)) correctLane(6);
+    if (xPosition <= 2000) changeLane(7);
+    break;
+
+  case -8:
+    if ((xPosition >= 1400) && (setCoordTramo(7, 200, 800))) correctLane(7);
+    if (xPosition <= 1000) turn();
     break;
 
   case 1:
@@ -663,7 +693,7 @@ void checkTurn() {
   
   case 2:
     if ((yPosition <= 1600) && setCoordTramo(1, 2200, 2800)) correctLane(1);
-    if (yPosition >= 2100) turn();
+    if (yPosition >= 2000) turn();
     break;
 
   case 3:
@@ -711,12 +741,12 @@ void decideTurn(){
 }
 
 void changeLane(uint8_t _tramo) {
-  objectivePosition = tramos[_tramo];
+  objectivePosition = tramos[bool((turnSense+1)/2)][_tramo];
   tramo++;
 }
 
 void correctLane(uint8_t _tramo) {
-  objectivePosition = tramos[_tramo];
+  objectivePosition = tramos[bool((turnSense+1)/2)][_tramo];
 }
 
 void enviarDato(byte* pointer, int8_t size){
@@ -731,13 +761,13 @@ void enviarDato(byte* pointer, int8_t size){
 bool setCoordTramo(uint8_t _tramo, uint16_t leftCoord, uint16_t rightCoord) {
   if (firma1Detectada) {
     arrayBloques[_tramo] = GreenSignature;
-    tramos[_tramo] = leftCoord;
+    tramos[bool((turnSense+1)/2)][_tramo] = leftCoord;
     firma1Detectada = false;
     return true;
   }
   if (firma2Detectada) {
     arrayBloques[_tramo] = RedSignature;
-    tramos[_tramo] = rightCoord;
+    tramos[bool((turnSense+1)/2)][_tramo] = rightCoord;
     firma2Detectada = false;
     return true;
   }
