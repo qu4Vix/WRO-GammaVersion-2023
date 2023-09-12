@@ -23,6 +23,7 @@ class MPU {
     void UpdateAngle(); // Update the angle (Call in the loop)
     double GetAngle();   // Returns the angle
     void measureFirstMillis();
+    void addAngle(double _addedAngle);
 
     private:
     MPU9250 _mpu;   // MPU object

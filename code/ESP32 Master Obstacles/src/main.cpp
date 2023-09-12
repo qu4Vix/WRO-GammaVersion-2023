@@ -52,9 +52,6 @@ uint8_t firma2Y = 21;
 enum e {
   Inicio,
   Recto,
-  DecidiendoGiro,
-  PreGiro,
-  Girando,
   Final
 };
 uint8_t estado = e::Inicio;
@@ -73,11 +70,14 @@ uint8_t estado = e::Inicio;
 // journey variables
 
 // number of turns
-uint8_t giros = 1;
+uint8_t giros = 0;
+uint8_t totalGiros = 0;
 // section in which the car is
 uint8_t tramo = 1;
 // sense of turn
 int8_t turnSense = 0;
+// whether you have to turn clockwise or not
+bool turnClockWise;
 
 // encoder variables
 
@@ -98,7 +98,7 @@ double yPosition = 0;
 
 // position PID controller variables
 
-#define positionKP 0.3
+#define positionKP 0.2
 #define positionKD 1
 int objectivePosition = 0;
 float positionError;
@@ -113,6 +113,24 @@ uint16_t tramos[2][8] ={
   {mapSize - trackCenter, mapSize - trackCenter, mapSize - trackCenter, mapSize - trackCenter, trackCenter, trackCenter, trackCenter, trackCenter}
 };
 uint8_t arrayBloques[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+uint16_t blockPaths[2][4][3] =
+{
+  { // anticlockwise
+    {2500, mapSize - trackCenter - trackLateral, mapSize - trackCenter + trackLateral}, // Left, right
+    {2500, mapSize - trackCenter - trackLateral, mapSize - trackCenter + trackLateral},
+    {500, trackCenter + trackLateral, trackCenter - trackLateral},
+    {500, trackCenter + trackLateral, trackCenter - trackLateral}
+  },
+  { // clockwise
+    {500, trackCenter - trackLateral, trackCenter + trackLateral},
+    {2500, mapSize - trackCenter + trackLateral, mapSize - trackCenter - trackLateral}, // Left, right
+    {2500, mapSize - trackCenter + trackLateral, mapSize - trackCenter - trackLateral},
+    {500, trackCenter - trackLateral, trackCenter + trackLateral}
+  }
+};
+uint8_t lastBlock;
+bool senseDirectionChanged = false;
+bool bloqueEnMedio = false;
 
 // object declarations
 
@@ -162,6 +180,7 @@ void checkTurn();   // check wether you have to turn or not
 void changeLane(uint8_t _tramo);
 bool setCoordTramo(uint8_t tramo, uint16_t leftCoord, uint16_t rightCoord);
 void correctLane(uint8_t _tramo);
+void changeDrivingDirection();
 
 void setup() {
   // put your setup code here, to run once:
@@ -228,6 +247,7 @@ void setup() {
   digitalWrite(pinLED_verde, HIGH);
   setYcoord(readDistance(0));
   digitalWrite(pinLED_verde, HIGH);
+  if (yPosition >= 1500) bloqueEnMedio = true;
 
   /*
   digitalWrite(pinLED_verde, HIGH);
@@ -241,7 +261,7 @@ void setup() {
   delay(500);
 
   // start driving (set a speed to the car and initialize the mpu)
-  //setSpeed(2);
+  setSpeed(2);
   mimpu.measureFirstMillis();
 }
 
@@ -337,6 +357,7 @@ void loop() {
     long posYObjLong = (turnSense==-1)?1:(turnSense==1)?2:0;
     long anguloLong = mimpu.GetAngle();
     long anguloObjLong = objectiveDirection;
+    firma2X = giros;
     enviarDato((byte*)&posXLong,sizeof(posXLong));
     enviarDato((byte*)&posYLong,sizeof(posYLong));
     enviarDato((byte*)&posXObjLong,sizeof(posXObjLong));
@@ -362,6 +383,7 @@ void loop() {
   // check turn every 50ms
   static uint32_t prev_ms_turn = millis();
   if (millis() > prev_ms_turn) {
+    if (totalGiros == 8) changeDrivingDirection();
     checkTurn();
     prev_ms_turn = millis() + 50;
   }
@@ -389,19 +411,17 @@ void loop() {
         firma1Detectada = firma2Detectada = false;
         setXcoord(readDistance(270));
         objectivePosition = xPosition;
-        if (turnSense==-1) {
-          tramos[0][1] -=2000;
-        }
+        analogWrite(pinLIDAR_motor, 0);
         estado = e::Recto;
         //setSpeed(7);
       }
     }
   break;
   case e::Recto:
-    if (giros == 13) {
+    if (totalGiros == 12) {
       estado = e::Final;
     }
-    //if (giros == 5) setSpeed(5);
+    if (totalGiros == 4) setSpeed(10);
   break;
   case e::Final:
     if (yPosition >= 1200) {
@@ -459,11 +479,12 @@ void receiveData() {
     commSerial.readBytes(&SignatureX, 1);
     commSerial.readBytes(&SignatureY, 1);
     // solo aceptar firmas en la primera vuelta
-    if (giros < 6) {
+    if (totalGiros <= 4) {
       firma1Detectada = (Signature==1);
       firma2Detectada = (Signature==2);
       firma1X = SignatureX;
       firma1Y = SignatureY;
+      if (totalGiros == 4 && tramo == 1) firma1Detectada = firma2Detectada = 0;
     }
   }
 }
@@ -571,7 +592,7 @@ void iteratePositionPID() {
   }
   objectiveDirection = constrain(positionKP * positionError + positionKD * (positionError - prev_positionError), -90, 90);
   if (fixInverted) objectiveDirection = -objectiveDirection;
-  objectiveDirection += 90 * (giros-1) * turnSense;
+  objectiveDirection += 90 * giros * turnSense;
 }
 
 void turn() {
@@ -579,55 +600,63 @@ void turn() {
   switch ((tramo+1) * turnSense)
   {
   case -2:
-    objectivePosition = tramos[bool((turnSense+1)/2)][2];
+    objectivePosition = blockPaths[turnClockWise][1][arrayBloques[2]];
     fixInverted = false;
+    fixXposition = false;
     tramo++;
     break;
   
   case -4:
-    objectivePosition = tramos[bool((turnSense+1)/2)][4];
+    objectivePosition = blockPaths[turnClockWise][2][arrayBloques[4]];
     fixInverted = false;
+    fixXposition = true;
     tramo++;
     break;
 
   case -6:
-    objectivePosition = tramos[bool((turnSense+1)/2)][6];
+    objectivePosition = blockPaths[turnClockWise][3][arrayBloques[6]];
     fixInverted = true;
+    fixXposition = false;
     tramo++;
     break;
 
   case -8:
-    objectivePosition = tramos[bool((turnSense+1)/2)][0];
+    objectivePosition = blockPaths[turnClockWise][0][arrayBloques[0]];
     fixInverted = true;
+    fixXposition = true;
     tramo = 0;
     break;
   
   case 2:
-    objectivePosition = tramos[bool((turnSense+1)/2)][2];
+    objectivePosition = blockPaths[turnClockWise][1][arrayBloques[2]];
     fixInverted = true;
+    fixXposition = false;
     tramo++;
     break;
   
   case 4:
-    objectivePosition = tramos[bool((turnSense+1)/2)][4];
+    objectivePosition = blockPaths[turnClockWise][2][arrayBloques[4]];
     fixInverted = false;
+    fixXposition = true;
     tramo++;
     break;
 
   case 6:
-    objectivePosition = tramos[bool((turnSense+1)/2)][6];
+    objectivePosition = blockPaths[turnClockWise][3][arrayBloques[6]];
     fixInverted = false;
+    fixXposition = false;
     tramo++;
     break;
 
   case 8:
-    objectivePosition = tramos[bool((turnSense+1)/2)][0];
+    objectivePosition = blockPaths[turnClockWise][0][arrayBloques[0]];
     fixInverted = true;
+    fixXposition = true;
     tramo = 0;
     break;
   }
   giros++;
-  fixXposition = !fixXposition;
+  totalGiros++;
 }
 
 void setXcoord(uint16_t i) {
@@ -643,7 +672,7 @@ void checkTurn() {
   {
   case 0:
     if (setCoordTramo(1, 2200, 2800)) {
-      objectivePosition = tramos[bool((turnSense+1)/2)][1] - 2500;
+      objectivePosition = blockPaths[0][0][arrayBloques[1]] - 2500;
     }
     break;
   case -1:
@@ -732,21 +761,23 @@ void decideTurn(){
   if (readDistance(90) > readDistance(270) && readDistance(90) > 1000)
   {
     turnSense = -1;
+    turnClockWise = true;
   }
   else if (readDistance(270) > readDistance(90) && readDistance(270) > 1000)
   {
     turnSense = 1;
+    turnClockWise = false;
   }
   else turnSense = 0;
 }
 
 void changeLane(uint8_t _tramo) {
-  objectivePosition = tramos[bool((turnSense+1)/2)][_tramo];
+  objectivePosition = blockPaths[turnClockWise][uint8_t(_tramo/2)][arrayBloques[_tramo]];
   tramo++;
 }
 
 void correctLane(uint8_t _tramo) {
-  objectivePosition = tramos[bool((turnSense+1)/2)][_tramo];
+  objectivePosition = blockPaths[turnClockWise][uint8_t(_tramo/2)][arrayBloques[_tramo]];
 }
 
 void enviarDato(byte* pointer, int8_t size){
@@ -761,15 +792,45 @@ void enviarDato(byte* pointer, int8_t size){
 bool setCoordTramo(uint8_t _tramo, uint16_t leftCoord, uint16_t rightCoord) {
   if (firma1Detectada) {
     arrayBloques[_tramo] = GreenSignature;
-    tramos[bool((turnSense+1)/2)][_tramo] = leftCoord;
+    lastBlock = GreenSignature;
+    tramos[turnClockWise][_tramo] = leftCoord;
     firma1Detectada = false;
     return true;
   }
   if (firma2Detectada) {
     arrayBloques[_tramo] = RedSignature;
-    tramos[bool((turnSense+1)/2)][_tramo] = rightCoord;
+    lastBlock = RedSignature;
+    tramos[turnClockWise][_tramo] = rightCoord;
     firma2Detectada = false;
     return true;
   }
   return false;
+}
+
+void changeDrivingDirection() {
+  if (senseDirectionChanged == 0) {
+    if (yPosition >= 1500 - 500*bloqueEnMedio) {
+      if (lastBlock == RedSignature) {
+        xPosition = 3000 - xPosition;
+        yPosition = 3000 - yPosition;
+        turnSense *= -1;
+        turnClockWise = !turnClockWise;
+        tramo = 1;
+        mimpu.addAngle(900*turnSense);
+        giros = 0;
+        uint8_t colorBlocks[8];
+        for (uint8_t i = 0; i<8; i++) {
+          colorBlocks[i] = arrayBloques[i];
+        }
+        for (uint8_t i = 0; i<8; i++) {
+          uint8_t index = 8-1 - i + 2;
+          if (index > 7) index -= 8;
+          arrayBloques[i] = colorBlocks[index];
+        }
+        correctLane(1);
+        setSpeed(5);
+      }
+      senseDirectionChanged = true;
+    }
+  }
 }

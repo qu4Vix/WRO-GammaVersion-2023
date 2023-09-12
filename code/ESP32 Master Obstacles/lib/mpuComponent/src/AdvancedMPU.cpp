@@ -76,3 +76,7 @@ void MPU::measureFirstMillis() {
         _firstMillisRead = true;
     }
 }
+
+void MPU::addAngle(double _addedAngle) {
+    _angle += _addedAngle;
+}
