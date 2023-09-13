@@ -41,6 +41,9 @@ bool firma2Detectada = true;
 uint8_t firma2X = 20;
 uint8_t firma2Y = 21;
 
+// telemetry (ignore)
+uint8_t arrayBloques[8];
+
 // conversion between mm and encoder counts
 #define MMperEncoder 1.41
 
@@ -57,7 +60,7 @@ uint8_t estado = e::Inicio;
 
 // journey variables
 
-uint8_t giros = 1;
+uint8_t giros = 0;
 uint8_t tramo = 0;
 int8_t turnSense = 0;
 
@@ -205,7 +208,7 @@ void setup() {
   delay(500);
 
   // start driving (set a speed to the car and initialize the mpu)
-  setSpeed(5);
+  setSpeed(2);
   mimpu.measureFirstMillis();
 }
 
@@ -314,7 +317,9 @@ void loop() {
     enviarDato((byte*)&firma1Y,sizeof(firma1Y));
     enviarDato((byte*)&firma2Detectada,sizeof(firma2Detectada));
     enviarDato((byte*)&firma2X,sizeof(firma2X));
-    enviarDato((byte*)&firma2Y,sizeof(firma2Y));    
+    enviarDato((byte*)&firma2Y,sizeof(firma2Y));
+    enviarDato((byte*)&arrayBloques,sizeof(arrayBloques));
+    enviarDato((byte*)&tramo,sizeof(tramo));
 
     prev_ms_tele = millis();
   }
@@ -345,13 +350,17 @@ void loop() {
   case e::Inicio:
     if (yPosition >= 2500) {
       decideTurn();
-      setXcoord(readDistance(270));
-      objectivePosition = xPosition;
-      estado = e::Recto;
+      if (turnSense != 0) {
+        setXcoord(readDistance(270));
+        objectivePosition = xPosition;
+        analogWrite(pinLIDAR_motor, 0);
+        estado = e::Recto;
+        setSpeed(5);
+      }
     }
   break;
   case e::Recto:
-    if (giros == 13) {
+    if (giros == 12) {
       estado = e::Final;
     }
   break;
@@ -493,7 +502,7 @@ void iteratePositionPID() {
   }
   objectiveDirection = constrain(positionKP * positionError + positionKD * (positionError - prev_positionError), -90, 90);
   if (fixInverted) objectiveDirection = -objectiveDirection;
-  objectiveDirection += 90 * (giros-1) * turnSense;
+  objectiveDirection += 90 * giros * turnSense;
 }
 
 void turn() {
