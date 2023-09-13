@@ -21,6 +21,11 @@ Updater miota(otaPort);
 TelemetryManager telemetry(receiversIP, receiversPort);
 #endif
 
+// Speeds
+#define StartSpeed 2
+#define CruisiereSpeed 10
+#define NormalSpeed 5
+
 // Servo and direction variables
 
 #define servoKP 2.5
@@ -184,7 +189,6 @@ void changeDrivingDirection();
 
 void setup() {
   // put your setup code here, to run once:
-
   
   #if ENABLE_TELEMETRY == true
   // begin telemetry serial
@@ -199,6 +203,7 @@ void setup() {
 
   // set all the pin modes
   setPinModes();
+  mimpu.SetDebugLedPin(pinLED_rojo);
 
   #if ENABLE_WIFI == true
     miota.WiFiInit();
@@ -219,7 +224,7 @@ void setup() {
   while (!IS_OK(lidar.getDeviceInfo(info, 100))) delay(500);
   rplidar_response_device_health_t health;
   lidar.getHealth(health);
-  Serial.println("info: " + String(health.status) +", " + String(health.error_code));
+  //Serial.println("info: " + String(health.status) +", " + String(health.error_code));
   // detected...
   lidar.startScan();
 
@@ -239,14 +244,12 @@ void setup() {
   delay(500);
 
   // wait until y coordinate is calculated
-  while (readDistance(0) == 0)
-  {
-    digitalWrite(pinLED_rojo, HIGH);
-  }
+  digitalWrite(pinLED_rojo, HIGH);
+  while (readDistance(0) == 0);
   digitalWrite(pinLED_rojo, LOW);
   digitalWrite(pinLED_verde, HIGH);
   setYcoord(readDistance(0));
-  digitalWrite(pinLED_verde, HIGH);
+  digitalWrite(pinLED_verde, LOW);
   if (yPosition >= 1500) bloqueEnMedio = true;
 
   /*
@@ -261,7 +264,7 @@ void setup() {
   delay(500);
 
   // start driving (set a speed to the car and initialize the mpu)
-  setSpeed(2);
+  setSpeed(StartSpeed);
   mimpu.measureFirstMillis();
 }
 
@@ -405,7 +408,7 @@ void loop() {
   switch (estado)
   {
   case e::Inicio:
-    if (yPosition >= 2100) {
+    if (yPosition >= 2000) {
       decideTurn();
       if (turnSense !=0 ) {
         firma1Detectada = firma2Detectada = false;
@@ -421,7 +424,7 @@ void loop() {
     if (totalGiros == 12) {
       estado = e::Final;
     }
-    if (totalGiros == 4) setSpeed(10);
+    if (totalGiros == 4) setSpeed(CruisiereSpeed);
   break;
   case e::Final:
     if (yPosition >= 1200) {
@@ -449,6 +452,11 @@ void setSpeed(int speed) {
 }
 
 void setSteering(int angle) {
+  if (giros >= 4) {
+    if (abs(angle) >= 60) {
+      setSpeed(NormalSpeed);
+    } else setSpeed(CruisiereSpeed);
+  }
   angle = constrain(angle, -90, 90);
   uint8_t _angle = angle + 90;
   commSerial.write(2);
@@ -828,7 +836,7 @@ void changeDrivingDirection() {
           arrayBloques[i] = colorBlocks[index];
         }
         correctLane(1);
-        setSpeed(5);
+        setSpeed(NormalSpeed);
       }
       senseDirectionChanged = true;
     }

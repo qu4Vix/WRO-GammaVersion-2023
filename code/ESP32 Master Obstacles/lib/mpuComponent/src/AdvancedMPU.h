@@ -24,11 +24,13 @@ class MPU {
     double GetAngle();   // Returns the angle
     void measureFirstMillis();
     void addAngle(double _addedAngle);
+    void SetDebugLedPin(uint8_t _pin);
 
     private:
     MPU9250 _mpu;   // MPU object
     byte _pinSDA;
     byte _pinSCL;
+    byte _pinLED;
     double _offset;
     double _angle;
     uint32_t _prev_ms_angle;

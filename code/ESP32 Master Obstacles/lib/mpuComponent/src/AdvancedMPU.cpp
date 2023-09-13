@@ -18,7 +18,7 @@ void MPU::BeginWire(byte pinSDA, byte pinSCL, uint32_t freq) {
     while (!Wire1.begin(int(_pinSDA), int(_pinSCL), freq)) {
         // Wire Connection failed
         delay(200);
-        //digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+        digitalWrite(_pinLED, !digitalRead(_pinLED));
     }
 }
 
@@ -36,7 +36,7 @@ void MPU::Setup() {
     while(!_mpu.setup(0x68, setting, Wire1)) {  // change to your own address
         //Serial.println("MPU connection failed. Please check your connection with `connection_check` example.");
         delay(300);
-        //digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+        digitalWrite(_pinLED, !digitalRead(_pinLED));
     }
 
     //loadCalibration();
@@ -79,4 +79,8 @@ void MPU::measureFirstMillis() {
 
 void MPU::addAngle(double _addedAngle) {
     _angle += _addedAngle;
+}
+
+void MPU::SetDebugLedPin(uint8_t _pin) {
+    _pinLED = _pin;
 }
