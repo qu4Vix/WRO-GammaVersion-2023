@@ -9,6 +9,7 @@ using System;
 public class UDPListener : MonoBehaviour
 {
     UdpClient clientData;
+    public bool lidarEnable = false;
     int portData = 5005;
     public int receiveBufferSize = 120000;
 
@@ -23,7 +24,7 @@ public class UDPListener : MonoBehaviour
 
     public GameObject[] LidarPilonesDistancias = new GameObject[360];
 
-    //Telemetría variables coche
+    //Telemetrï¿½a variables coche
     public long PosicionX = 0;
     public long PosicionY = 0;
     public long PosicionXObjetivo = 0;
@@ -43,7 +44,7 @@ public class UDPListener : MonoBehaviour
     public TMP_Text txt_PosicionX;
     public TMP_Text txt_PosicionY;
     public TMP_Text txt_PosicionXObjetivo;
-    public TMP_Text txt_PosiciónYObjetivo;
+    public TMP_Text txt_PosicionYObjetivo;
     public TMP_Text txt_Encoder;
     public TMP_Text txt_Estado;
     public TMP_Text txt_Bateria;
@@ -55,8 +56,16 @@ public class UDPListener : MonoBehaviour
     public TMP_Text txt_firma2Detectada;
     public TMP_Text txt_firma2PosicionX;
     public TMP_Text txt_firma2PosicionY;
+    public TMP_Text txt_ArrayBloques;
+    public TMP_Text txt_tramo;
 
     public MovimientoCoche coche;
+    public int[] arrayBloques = new int[8] {1,2,3,4,5,6,7,8};
+    public uint tramo = 0;
+
+    public Camera cam;
+
+    public string strarrayBloques;
 
 
 
@@ -67,27 +76,40 @@ public class UDPListener : MonoBehaviour
     }
     private void Update()
     {
-        for(int i = 0; i<=359; i++)
-        {
-            float d = LidarDistancias[i];
-            LidarDistancias[i] = 0;
-            float posX = d * Mathf.Sin((Mathf.PI / 180) * i) / 1000;
-            float posY = d * Mathf.Cos((Mathf.PI / 180) * i) / 1000;
-            Debug.Log("posx = " + posX + " - posy = " + posY );
-            Vector3 posicion = new Vector3(transform.position.x + posX, transform.position.y, transform.position.z + posY);
-            Debug.Log("posicion del pilon:" + posicion.ToString());
-            Instantiate(pilonDistancias, posicion, Quaternion.identity);
+        if(lidarEnable){
+            for(int i = 0; i<=359; i++)
+            {
+                float d = LidarDistancias[i];
+                LidarDistancias[i] = 0;
+                float posX = d * Mathf.Sin((Mathf.PI / 180) * i) / 1000;
+                float posY = d * Mathf.Cos((Mathf.PI / 180) * i) / 1000;
+                Debug.Log("posx = " + posX + " - posy = " + posY );
+                Vector3 posicion = new Vector3(transform.position.x + posX, transform.position.y, transform.position.z + posY);
+                Debug.Log("posicion del pilon:" + posicion.ToString());
+                Instantiate(pilonDistancias, posicion, Quaternion.identity);
+            }
         }
         RefrescarEtiquetas();
         coche.posX = PosicionX;
         coche.posY = PosicionY;
+        if(firma1Detectada == true)
+        {
+            cam.backgroundColor = Color.green;
+        }else if (firma2Detectada == true)
+        {
+            cam.backgroundColor = Color.red;
+        }
+        else
+        {
+            cam.backgroundColor = Color.blue;
+        }
     }
     void RefrescarEtiquetas()
     {
         txt_PosicionX.text = "PosX: " +PosicionX.ToString();
         txt_PosicionY.text = "PosY: " +PosicionY.ToString();
         txt_PosicionXObjetivo.text = "PosXObj: " + PosicionXObjetivo.ToString();
-        txt_PosiciónYObjetivo.text = "PosYObj: " + PosicionYObjetivo.ToString();
+        txt_PosicionYObjetivo.text = "PosYObj: " + PosicionYObjetivo.ToString();
         txt_Encoder.text = "Encoder: " + Encoder.ToString();
         txt_Estado.text = "Estado: " + Estado.ToString();
         txt_Bateria.text = "Bateria: " + Bateria.ToString();
@@ -99,7 +121,19 @@ public class UDPListener : MonoBehaviour
         txt_firma2Detectada.text = "Firma2: " + firma2Detectada.ToString();
         txt_firma2PosicionX.text = "F2X: " + firma2PosicionX.ToString();
         txt_firma2PosicionY.text = "F2Y" + firma2PosicionY.ToString();
-}
+        
+        txt_tramo.text = "Tramo: " + tramo.ToString();
+        strarrayBloques = "[" + arrayBloques[0].ToString() + "," + 
+                                arrayBloques[1].ToString() + "," + 
+                                arrayBloques[2].ToString() + "," + 
+                                arrayBloques[3].ToString() + "," + 
+                                arrayBloques[4].ToString() + "," + 
+                                arrayBloques[5].ToString() + "," + 
+                                arrayBloques[6].ToString() + "," + 
+                                arrayBloques[7].ToString() + 
+                                "]";
+        txt_ArrayBloques.text = "ArrayBloques: " + strarrayBloques;
+    }
     public void InitializeUDPListener()
     {
         ipEndPointData = new IPEndPoint(IPAddress.Any, portData);
@@ -132,14 +166,14 @@ public class UDPListener : MonoBehaviour
 
     void ParsePacket()
     {
-        //El primer byte indicará el tipo de paquete.
-        //Dependiendo del tipo de paquete, éste contendrá cierta cantidad de datos
+        //El primer byte indicara el tipo de paquete.
+        //Dependiendo del tipo de paquete, ï¿½ste contendrï¿½ cierta cantidad de datos
         //  -0 -> 5 datos     ->NA
         //  -1 -> 10 datos    ->NA
         //  -2 -> 15 datos    ->NA
         //  -3 -> 360 datos   ->Lidar Quality
         //  -4 -> 720 datos   ->Lidar Distances
-        //  -5 -> 50 datos    ->Información general
+        //  -5 -> 50 datos    ->Informaciï¿½n general
 
         // work with receivedBytes
         Debug.Log("receivedBytes len = " + receivedBytes.Length);
@@ -171,24 +205,26 @@ public class UDPListener : MonoBehaviour
             .ToArray()));
             /*
             --Posicion x                        8 bytes
-            --Posición y                        8 bytes
-            --Posición x Objetivo               8 bytes
-            --Posición y Objetivo               8 bytes
+            --Posiciï¿½n y                        8 bytes
+            --Posiciï¿½n x Objetivo               8 bytes
+            --Posiciï¿½n y Objetivo               8 bytes
             --Encoder 32 uint32                 4 bytes
             --Estado 8bits  uint                1 byte
-            --batería 8bits uint                1 byte
-            --Ángulo 16 float                   4 bytes     
+            --baterï¿½a 8bits uint                1 byte
+            --ï¿½ngulo 16 float                   4 bytes     
             --Angulo Objetivo 16 float          4 bytes
-            --Cámara firma1 Detectada 1 byte    1 byte
-            --Cámara firma1 x 8 bits            1 byte
-            --Cámara firma1 y 8 bits            1 byte
-            --Cámara firma2 Detectada 1byte     1 byte
-            --Cámara firma2 x 8bits             1 byte
-            --Cámara firma2 y 8bits             1 byte
+            --Cï¿½mara firma1 Detectada 1 byte    1 byte
+            --Cï¿½mara firma1 x 8 bits            1 byte
+            --Cï¿½mara firma1 y 8 bits            1 byte
+            --Cï¿½mara firma2 Detectada 1byte     1 byte
+            --Cï¿½mara firma2 x 8bits             1 byte
+            --Cï¿½mara firma2 y 8bits             1 byte
+            --ArrayTramo      8 bytes
+            --tramo           1 byte
             
-            |XXXX|YYYY|MMMM|NNNN|QQQQ|W|E|RRRR|TTTT|U|I|O|A|S|D
-             0000 0000 0111 1111 1111 2 2 2222 2222 3 3 3 3 3 3
-             1234 5678 9012 3456 7890 1 2 3456 7890 1 2 3 4 5 6
+            |XXXX|YYYY|MMMM|NNNN|QQQQ|W|E|RRRR|TTTT|U|I|O|A|S|D|arrayTramo|tramo
+             0000 0000 0111 1111 1112 2 2 2222 2223 3 3 3 3 3 3 33344444   4
+             1234 5678 9012 3456 7890 1 2 3456 7890 1 2 3 4 5 6 78901234   5
             */
             int i = 1;
             PosicionX = (long)(receivedBytes[i] << 24 |
@@ -241,6 +277,17 @@ public class UDPListener : MonoBehaviour
             firma2PosicionX = receivedBytes[i];
             i = 36;
             firma2PosicionY = receivedBytes[i];
+            i = 37;
+            int indice = 7;
+            for (i = 37; i <= 44; i++)
+            {
+                
+                arrayBloques[indice] = receivedBytes[i];
+                indice--;
+            }
+            i = 45;
+            tramo = receivedBytes[i];
+
         }
         else
         {
