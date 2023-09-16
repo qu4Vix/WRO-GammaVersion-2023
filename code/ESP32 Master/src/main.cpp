@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <AdvancedMPU.h>
 #include <RPLidar.h>
+#include <melody_factory.h>
+#include <melody_player.h>
 #include "credentials.h"
 #include "pinAssignments.h"
 
@@ -99,6 +101,34 @@ RPLidar lidar;
 HardwareSerial commSerial(1);
 TaskHandle_t Task1;
 HardwareSerial teleSerial(0);
+MelodyPlayer player(pinBuzzer, HIGH);
+const uint8_t nNotes = 45;
+String notes1[nNotes] = 
+{
+  "A4", "E5", "SILENCE",    "A4", "E5", "SILENCE",    "B4", "E5", "SILENCE",    "B4", "E5", "SILENCE",
+  "C4", "E5", "SILENCE",    "C4", "E5", "SILENCE",    "D4", "E5", "SILENCE",    "D4", "E5", "B4",
+  "A4", "E5", "SILENCE",    "A4", "E5", "SILENCE",    "B4", "E5", "SILENCE",    "B4", "E5", "SILENCE",
+  "C4", "E5", "SILENCE",    "C4", "E5", "SILENCE",    "D4", "E5", "SILENCE"
+};
+const uint8_t timeUnit = 625;
+// create a melody
+Melody melody1 = MelodyFactory.load("Cornfield chase", timeUnit, notes1, nNotes);
+String notes2[9] = {"D4", "D4", "D4", "D4", "E5", "E5", "E5", "E5", "B4"};
+Melody melody2 = MelodyFactory.load("Cornfield chase 2", 156, notes2, 9);
+String notes3[60] =
+{
+  "A4", "C4", "E5", "A5",   "A4", "C4", "E5", "A5",   "A4", "C4", "E5", "A5",
+  "B4", "D4", "E5", "B5",   "B4", "D4", "E5", "B5",   "B4", "D4", "E5", "B5",
+  "B4", "D4", "E5", "B5",   "B4", "D4", "E5", "B5",   "B4", "D4", "E5", "B5",
+  "A4", "C4", "E5", "A5",   "G3", "B4", "E5", "F5",   "A4", "C4", "E5", "A5",
+  "B4", "D4", "E5", "B5",   "A4", "C4", "E5", "A5",   "G3", "B4", "E5", "F5"
+};
+Melody melody3 = MelodyFactory.load("Cornfield chase 3", 156, notes3, 60);
+String notes4[18] =
+{
+  "A5", "E6", "A5",   "A5", "E6", "A5",   "B5", "E6", "B5",   "B5", "E6", "B5",   "C5", "E6", "C5",   "C5", "E6", "C5"
+};
+Melody melody4 = MelodyFactory.load("Cornfield chase 4", 625, notes4, 18);
 
 // calculate the error in the direction
 int directionError(int bearing, int target);
@@ -155,7 +185,10 @@ void setup() {
 
     telemetry.StartUDP(udpPort);
   #endif
-  
+  player.play(melody1);
+      player.play(melody2);
+      player.play(melody3);
+      player.play(melody4);
   // configure the mpu
   mimpu.BeginWire(pinMPU_SDA, pinMPU_SCL, 400000);
   mimpu.Setup();
@@ -362,6 +395,7 @@ void loop() {
   case e::Recto:
     if (giros == 12) {
       estado = e::Final;
+      
     }
   break;
   case e::Final:

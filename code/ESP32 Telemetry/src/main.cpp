@@ -11,7 +11,7 @@ HardwareSerial SerialTelem(1);
 void connectToWiFi(const char * ssid, const char * pwd);
 void WiFiEvent(WiFiEvent_t event);
 
-const char * udpAddress = "192.168.1.132";
+const char * udpAddress = " 192.168.30.51";
 const int udpPort = 5005;
 
 //Are we currently connected?

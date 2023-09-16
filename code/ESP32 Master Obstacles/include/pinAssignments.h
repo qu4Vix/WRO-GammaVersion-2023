@@ -7,6 +7,10 @@
 #define pinLED_batAmarillo 26
 #define pinLED_batVerde 25
 
+
+// buzzer
+#define pinBuzzer 14
+
 // LIDAR pins (UART2 + PWM)
 #define pinLIDAR_TX 16
 #define pinLIDAR_RX 17
